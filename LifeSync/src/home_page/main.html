@@ -17,7 +17,7 @@
             </div>
 
             <nav class="sidebar-nav">
-                <a href="texting.html" class="nav-item">
+                <a href="../texting_ui/texting.html" class="nav-item">
                     <span class="nav-icon">💬</span>
                     <span class="nav-text">Texting</span>
                 </a>
@@ -72,7 +72,7 @@
 
         if (!isLoggedIn) {
             // Redirect to login if not logged in
-            window.location.href = 'login.html';
+            window.location.href = '../login_signup/login.html';
         } else {
             // Display username
             document.getElementById('userInfo').textContent = username;
@@ -81,7 +81,7 @@
         // Logout functionality
         document.getElementById('logoutBtn').addEventListener('click', function() {
             sessionStorage.clear();
-            window.location.href = 'first_page.html';
+            window.location.href = '../first_page/first_page.html';
         });
     </script>
 </body>

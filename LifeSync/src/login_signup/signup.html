@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LifeSync - Sign Up</title>
-    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="../base.css">
     <link rel="stylesheet" href="auth.css">
 </head>
 <body>
@@ -63,7 +63,7 @@
 
             <div class="login-footer">
                 <p>Already have an account? <a href="login.html">Login</a></p>
-                <a href="first_page.html">← Back to Home</a>
+                <a href="../first_page/first_page.html">← Back to Home</a>
             </div>
         </div>
     </div>
@@ -89,7 +89,7 @@
                 sessionStorage.setItem('isLoggedIn', 'true');
 
                 // Redirect to main page
-                window.location.href = 'main.html';
+                window.location.href = '../home_page/main.html';
             } else {
                 alert('Please fill in all fields');
             }
