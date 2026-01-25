@@ -1,0 +1,391 @@
+/* Dashboard/Main Page Styles */
+
+.dashboard-body {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 50%, #c92a2a 100%);
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+}
+
+.dashboard-sidebar {
+    width: 280px;
+    background: linear-gradient(180deg, #dc143c 0%, #c92a2a 100%);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    border-right: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-header {
+    padding: 30px 25px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-header h2 {
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.user-info {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 20px 0;
+    overflow-y: auto;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 18px 25px;
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 16px;
+    border-left: 4px solid transparent;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: #ffffff;
+    padding-left: 28px;
+}
+
+.nav-item.active {
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: #ffffff;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.nav-icon {
+    font-size: 24px;
+    margin-right: 15px;
+    min-width: 30px;
+    text-align: center;
+}
+
+.nav-text {
+    flex: 1;
+}
+
+.sidebar-footer {
+    padding: 0;
+    border-top: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.logout-btn {
+    width: 100%;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 0;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+.logout-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-main {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.95);
+    margin: 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dashboard-content {
+    text-align: center;
+    padding: 40px;
+}
+
+.dashboard-content h1 {
+    color: #dc143c;
+    font-size: 36px;
+    font-weight: 700;
+    margin: 0 0 15px 0;
+}
+
+.dashboard-content p {
+    color: #666666;
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0;
+    size-adjust: 2000%;
+}
+
+/* Responsive Design */
+
+/* iPhone SE, iPhone 12/13 mini (320px - 375px) */
+@media (max-width: 428px) {
+    .dashboard-sidebar {
+        width: 70px;
+    }
+
+    .sidebar-header {
+        padding: 20px 10px;
+    }
+
+    .sidebar-header h2 {
+        font-size: 18px;
+        text-align: center;
+    }
+
+    .user-info {
+        display: none;
+    }
+
+    .nav-item {
+        padding: 15px 10px;
+        flex-direction: column;
+        gap: 5px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+    }
+
+    .nav-item:hover,
+    .nav-item.active {
+        border-left: none;
+        border-bottom-color: #ffffff;
+        padding-left: 10px;
+    }
+
+    .nav-icon {
+        font-size: 22px;
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+
+    .nav-text {
+        font-size: 10px;
+        text-align: center;
+    }
+
+    .sidebar-footer {
+        padding: 15px 10px;
+    }
+
+    .logout-btn {
+        font-size: 10px;
+        padding: 10px 5px;
+    }
+
+    .dashboard-main {
+        margin: 10px;
+    }
+}
+
+/* iPhone 12/13/14 Pro, iPhone 12/13/14 (390px - 428px) */
+@media (min-width: 429px) and (max-width: 767px) {
+    .dashboard-sidebar {
+        width: 90px;
+    }
+
+    .sidebar-header {
+        padding: 25px 15px;
+    }
+
+    .sidebar-header h2 {
+        font-size: 20px;
+        text-align: center;
+    }
+
+    .user-info {
+        font-size: 11px;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .nav-item {
+        padding: 18px 15px;
+        flex-direction: column;
+        gap: 8px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+    }
+
+    .nav-item:hover,
+    .nav-item.active {
+        border-left: none;
+        border-bottom-color: #ffffff;
+        padding-left: 15px;
+    }
+
+    .nav-icon {
+        font-size: 24px;
+        margin-right: 0;
+    }
+
+    .nav-text {
+        font-size: 11px;
+        text-align: center;
+    }
+
+    .sidebar-footer {
+        padding: 20px 15px;
+    }
+
+    .logout-btn {
+        font-size: 12px;
+        padding: 12px 10px;
+    }
+
+    .dashboard-main {
+        margin: 15px;
+    }
+}
+
+/* iPad Mini, iPad (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .dashboard-sidebar {
+        width: 220px;
+    }
+
+    .sidebar-header h2 {
+        font-size: 24px;
+    }
+
+    .nav-item {
+        padding: 16px 20px;
+    }
+
+    .nav-icon {
+        font-size: 22px;
+        margin-right: 12px;
+    }
+
+    .nav-text {
+        font-size: 15px;
+    }
+
+    .dashboard-main {
+        margin: 18px;
+    }
+}
+
+/* iPad Pro (1024px - 1366px) */
+@media (min-width: 1025px) and (max-width: 1366px) {
+    .dashboard-sidebar {
+        width: 260px;
+    }
+
+    .sidebar-header h2 {
+        font-size: 26px;
+    }
+
+    .dashboard-main {
+        margin: 20px;
+    }
+}
+
+/* Laptops and smaller desktops (1367px - 1920px) */
+@media (min-width: 1367px) and (max-width: 1920px) {
+    .dashboard-sidebar {
+        width: 300px;
+    }
+
+    .sidebar-header {
+        padding: 35px 30px;
+    }
+
+    .sidebar-header h2 {
+        font-size: 30px;
+    }
+
+    .user-info {
+        font-size: 15px;
+    }
+
+    .nav-item {
+        padding: 20px 30px;
+        font-size: 17px;
+    }
+
+    .nav-icon {
+        font-size: 26px;
+        margin-right: 18px;
+    }
+
+    .logout-btn {
+        font-size: 17px;
+        padding: 16px 24px;
+    }
+
+    .dashboard-main {
+        margin: 25px;
+    }
+}
+
+/* Large monitors (1921px and above) */
+@media (min-width: 1921px) {
+    .dashboard-sidebar {
+        width: 320px;
+    }
+
+    .sidebar-header {
+        padding: 40px 35px;
+    }
+
+    .sidebar-header h2 {
+        font-size: 32px;
+    }
+
+    .user-info {
+        font-size: 16px;
+    }
+
+    .nav-item {
+        padding: 22px 35px;
+        font-size: 18px;
+    }
+
+    .nav-icon {
+        font-size: 28px;
+        margin-right: 20px;
+    }
+
+    .logout-btn {
+        font-size: 18px;
+        padding: 18px 28px;
+    }
+
+    .dashboard-main {
+        margin: 30px;
+    }
+}

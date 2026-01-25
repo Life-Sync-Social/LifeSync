@@ -1,0 +1,427 @@
+/* Texting Page Styles */
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 100%;
+    margin: 0 auto;
+    background: transparent;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    padding: 20px 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
+                0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Messages Container */
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 25px;
+    background-color: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3),
+                0 5px 15px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.messages-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+    background: rgba(220, 220, 220, 0.5);
+    border-radius: 10px;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+    background: #dc143c;
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+    background: #c92a2a;
+}
+
+/* Message Styles */
+.message {
+    display: flex;
+    flex-direction: column;
+    max-width: 70%;
+    animation: slideIn 0.4s ease-out;
+}
+
+.own-message {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.other-message {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+.message-bubble {
+    padding: 14px 18px;
+    border-radius: 20px;
+    word-wrap: break-word;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15),
+                0 3px 6px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.message-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2),
+                0 4px 8px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.own-message .message-bubble {
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    color: #ffffff;
+}
+
+.other-message .message-bubble {
+    background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+    color: #2c2c2c;
+    border-color: rgba(220, 20, 60, 0.3);
+}
+
+.message-bubble p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.message-timestamp {
+    font-size: 11px;
+    color: #666666;
+    margin-top: 6px;
+    padding: 0 10px;
+    font-weight: 500;
+}
+
+/* Input Area */
+.input-area {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+    margin: 0 20px 20px 20px;
+    border-radius: 20px;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15),
+                0 5px 15px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.message-input {
+    flex: 1;
+    padding: 14px 20px;
+    border: 2px solid rgba(220, 20, 60, 0.3);
+    border-radius: 25px;
+    background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+    color: #2c2c2c;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05),
+                0 2px 5px rgba(0, 0, 0, 0.05);
+    font-weight: 500;
+    animation: bounce 2s ease-in-out;
+}
+
+.message-input:focus {
+    border-color: #dc143c;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05),
+                0 0 0 3px rgba(220, 20, 60, 0.1),
+                0 4px 10px rgba(220, 20, 60, 0.2);
+    transform: translateY(-1px);
+}
+
+.message-input::placeholder {
+    color: #999999;
+}
+
+.send-button {
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 25px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 6px 15px rgba(220, 20, 60, 0.3),
+                0 3px 6px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.send-button:hover {
+    background: linear-gradient(135deg, #ff1744 0%, #dc143c 100%);
+    box-shadow: 0 8px 20px rgba(220, 20, 60, 0.4),
+                0 4px 8px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.send-button:active {
+    transform: translateY(0px) scale(0.98);
+    box-shadow: 0 4px 10px rgba(220, 20, 60, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive Design */
+
+/* iPhone SE, iPhone 12/13 mini (320px - 375px) */
+@media (max-width: 428px) {
+    .header {
+        padding: 15px 15px;
+    }
+
+    .header h1 {
+        font-size: 18px;
+    }
+
+    .messages-container {
+        margin: 10px;
+        padding: 15px;
+        gap: 12px;
+    }
+
+    .message {
+        max-width: 90%;
+    }
+
+    .message-bubble {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .message-bubble p {
+        font-size: 14px;
+    }
+
+    .input-area {
+        padding: 12px;
+        margin: 0 10px 10px 10px;
+        gap: 10px;
+    }
+
+    .message-input {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+
+    .send-button {
+        padding: 10px 20px;
+        font-size: 14px;
+        min-width: 50px;
+    }
+}
+
+/* iPhone 12/13/14 Pro, iPhone 12/13/14 (390px - 428px) */
+@media (min-width: 429px) and (max-width: 767px) {
+    .header {
+        padding: 18px 20px;
+    }
+
+    .header h1 {
+        font-size: 20px;
+    }
+
+    .messages-container {
+        margin: 12px;
+        padding: 18px;
+    }
+
+    .message {
+        max-width: 85%;
+    }
+
+    .input-area {
+        padding: 15px;
+        margin: 0 12px 12px 12px;
+    }
+
+    .send-button {
+        padding: 12px 24px;
+    }
+}
+
+/* iPad Mini, iPad (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .app-container {
+        max-width: 100%;
+    }
+
+    .header {
+        padding: 22px 30px;
+    }
+
+    .header h1 {
+        font-size: 26px;
+    }
+
+    .messages-container {
+        margin: 18px;
+        padding: 22px;
+    }
+
+    .message {
+        max-width: 75%;
+    }
+
+    .message-bubble {
+        padding: 16px 20px;
+    }
+
+    .input-area {
+        padding: 18px;
+        margin: 0 18px 18px 18px;
+    }
+}
+
+/* iPad Pro (1024px - 1366px) */
+@media (min-width: 1025px) and (max-width: 1366px) {
+    .app-container {
+        max-width: 1000px;
+    }
+
+    .messages-container {
+        margin: 20px;
+        padding: 25px;
+    }
+
+    .message {
+        max-width: 70%;
+    }
+}
+
+/* Laptops and smaller desktops (1367px - 1920px) */
+@media (min-width: 1367px) and (max-width: 1920px) {
+    .app-container {
+        max-width: 1200px;
+    }
+
+    .header {
+        padding: 25px 35px;
+    }
+
+    .header h1 {
+        font-size: 28px;
+    }
+
+    .messages-container {
+        margin: 25px;
+        padding: 30px;
+    }
+
+    .message {
+        max-width: 65%;
+    }
+
+    .message-bubble {
+        padding: 16px 22px;
+    }
+
+    .message-bubble p {
+        font-size: 16px;
+    }
+
+    .input-area {
+        padding: 22px;
+        margin: 0 25px 25px 25px;
+    }
+
+    .message-input {
+        padding: 16px 22px;
+        font-size: 16px;
+    }
+
+    .send-button {
+        padding: 16px 36px;
+        font-size: 16px;
+    }
+}
+
+/* Large monitors (1921px and above) */
+@media (min-width: 1921px) {
+    .app-container {
+        max-width: 1400px;
+    }
+
+    .header {
+        padding: 30px 40px;
+    }
+
+    .header h1 {
+        font-size: 32px;
+    }
+
+    .messages-container {
+        margin: 30px;
+        padding: 35px;
+        gap: 20px;
+    }
+
+    .message {
+        max-width: 60%;
+    }
+
+    .message-bubble {
+        padding: 18px 24px;
+    }
+
+    .message-bubble p {
+        font-size: 17px;
+    }
+
+    .message-timestamp {
+        font-size: 13px;
+    }
+
+    .input-area {
+        padding: 25px;
+        margin: 0 30px 30px 30px;
+        gap: 20px;
+    }
+
+    .message-input {
+        padding: 18px 24px;
+        font-size: 17px;
+    }
+
+    .send-button {
+        padding: 18px 40px;
+        font-size: 17px;
+    }
+}
