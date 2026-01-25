@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeSync - Texting UI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>LifeSync</h1>
+            <div id="userInfo" style="font-size: 14px; margin-top: 5px;"></div>
+        </header>
+
+        <!-- Messages Area -->
+        <div class="messages-container" id="messagesContainer">
+            <div class="message own-message">
+                <div class="message-bubble">
+                    <p>Welcome to LifeSync Texting UI!</p>
+                </div>
+                <span class="message-timestamp" id="welcomeTimestamp"></span>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area">
+            <input
+                type="text"
+                id="messageInput"
+                class="message-input"
+                placeholder="Type a message..."
+                autocomplete="off"
+            >
+            <button id="sendButton" class="send-button">↑</button>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+        const username = sessionStorage.getItem('username');
+
+        if (!isLoggedIn) {
+            // Redirect to login if not logged in
+            window.location.href = 'login.html';
+        } else {
+            // Display username
+            document.getElementById('userInfo').textContent = 'Logged in as: ' + username;
+        }
+    </script>
+    <script src="app.js"></script>
+</body>
+</html>
