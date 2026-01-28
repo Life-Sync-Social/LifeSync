@@ -1,0 +1,859 @@
+/* Texting Page Styles */
+
+/* Bounce keyframe animation */
+@keyframes bounceInput {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    25% {
+        transform: translateY(-8px);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+    75% {
+        transform: translateY(-6px);
+    }
+}
+
+/* Send button animation */
+@keyframes sendPulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15) rotate(5deg);
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+/* Message slide-in animation */
+@keyframes slideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 100%;
+    margin: 0 auto;
+    background: transparent;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    padding: 20px 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
+                0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Messages Container */
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 25px;
+    background-color: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3),
+                0 5px 15px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    min-height: 100px;
+    flex-shrink: 1;
+}
+
+.messages-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+    background: rgba(220, 220, 220, 0.5);
+    border-radius: 10px;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+    background: #dc143c;
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+    background: #c92a2a;
+}
+
+/* Message Styles */
+.message {
+    display: flex;
+    flex-direction: column;
+    max-width: 70%;
+    animation: slideIn 0.4s ease-out;
+}
+
+.own-message {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.other-message {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+.message-bubble {
+    padding: 14px 18px;
+    border-radius: 20px;
+    word-wrap: break-word;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15),
+                0 3px 6px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.message-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2),
+                0 4px 8px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.own-message .message-bubble {
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    color: #ffffff;
+}
+
+.other-message .message-bubble {
+    background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+    color: #2c2c2c;
+    border-color: rgba(220, 20, 60, 0.3);
+}
+
+.message-bubble p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.message-timestamp {
+    font-size: 11px;
+    color: #666666;
+    margin-top: 6px;
+    padding: 0 10px;
+    font-weight: 500;
+}
+
+/* Input Area */
+.input-area {
+    background: rgba(255, 255, 255, 0.98);
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+    margin: 0 20px 20px 20px;
+    border-radius: 20px;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15),
+                0 5px 15px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    position: relative;
+    z-index: 5;
+    flex-shrink: 0;
+}
+
+.message-input {
+    flex: 1;
+    padding: 14px 20px;
+    border: 2px solid rgba(220, 20, 60, 0.3);
+    border-radius: 25px;
+    background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+    color: #2c2c2c;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05),
+                0 2px 5px rgba(0, 0, 0, 0.05);
+    font-weight: 500;
+}
+
+.message-input.bounce {
+    animation: bounceInput 0.5s ease-out;
+}
+
+.message-input:focus {
+    border-color: #dc143c;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05),
+                0 0 0 3px rgba(220, 20, 60, 0.1),
+                0 4px 10px rgba(220, 20, 60, 0.2);
+    transform: translateY(-1px);
+}
+
+.message-input::placeholder {
+    color: #999999;
+}
+
+.send-button {
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 25px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 6px 15px rgba(220, 20, 60, 0.3),
+                0 3px 6px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.send-button:hover {
+    background: linear-gradient(135deg, #ff1744 0%, #dc143c 100%);
+    box-shadow: 0 8px 20px rgba(220, 20, 60, 0.4),
+                0 4px 8px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.send-button:active {
+    transform: translateY(0px) scale(0.98);
+    box-shadow: 0 4px 10px rgba(220, 20, 60, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.send-button.sending {
+    animation: sendPulse 0.4s ease-out;
+}
+
+/* AI Button */
+.ai-button {
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 6px 15px rgba(156, 39, 176, 0.3),
+                0 3px 6px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ai-button:hover {
+    background: linear-gradient(135deg, #ab47bc 0%, #9c27b0 100%);
+    box-shadow: 0 8px 20px rgba(156, 39, 176, 0.4),
+                0 4px 8px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px) scale(1.05);
+}
+
+.ai-button:active {
+    transform: translateY(0px) scale(0.98);
+    box-shadow: 0 4px 10px rgba(156, 39, 176, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.ai-button.active {
+    background: linear-gradient(135deg, #ab47bc 0%, #9c27b0 100%);
+    transform: scale(1.1);
+}
+
+.ai-icon {
+    font-size: 20px;
+}
+
+/* AI Suggestions Panel */
+.ai-suggestions-panel {
+    position: fixed;
+    bottom: 180px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3),
+                0 8px 20px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    border: 3px solid rgba(156, 39, 176, 0.3);
+    padding: 0;
+    width: calc(100% - 40px);
+    max-width: 500px;
+    z-index: 50;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.ai-suggestions-panel.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.ai-suggestions-header {
+    background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 17px 17px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 16px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.close-suggestions-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.close-suggestions-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.close-suggestions-btn:active {
+    transform: scale(0.95);
+}
+
+.ai-suggestions-content {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ai-suggestion-item {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+    border: 2px solid rgba(156, 39, 176, 0.2);
+    border-radius: 15px;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08),
+                0 2px 4px rgba(0, 0, 0, 0.05);
+    text-align: left;
+}
+
+.ai-suggestion-item:hover {
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    border-color: rgba(156, 39, 176, 0.5);
+    transform: translateX(5px) translateY(-2px);
+    box-shadow: 0 8px 20px rgba(156, 39, 176, 0.2),
+                0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ai-suggestion-item:active {
+    transform: translateX(3px) translateY(0px) scale(0.98);
+}
+
+.suggestion-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.suggestion-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #2c2c2c;
+    line-height: 1.4;
+}
+
+/* Fade animation for panel */
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@keyframes fadeOutDown {
+    0% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+}
+
+/* Scroll to Input Button */
+.scroll-to-input-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    color: white;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(220, 20, 60, 0.4),
+                0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    transition: all 0.3s ease;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.scroll-to-input-btn:hover {
+    background: linear-gradient(135deg, #ff1744 0%, #dc143c 100%);
+    transform: scale(1.1);
+    box-shadow: 0 10px 25px rgba(220, 20, 60, 0.5),
+                0 5px 10px rgba(0, 0, 0, 0.25);
+}
+
+.scroll-to-input-btn:active {
+    transform: scale(0.95);
+}
+
+.scroll-to-input-btn.visible {
+    display: flex;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.scroll-to-input-btn.pulse {
+    animation: pulse 1.5s infinite;
+}
+
+/* Responsive Design */
+
+/* Very small devices - ensure scrollability */
+@media (max-height: 600px) {
+    .messages-container {
+        min-height: 80px;
+        max-height: calc(100vh - 200px);
+    }
+
+    .input-area {
+        position: sticky;
+        bottom: 0;
+        margin-bottom: 10px;
+    }
+}
+
+/* iPhone SE, iPhone 12/13 mini (320px - 375px) */
+@media (max-width: 428px) {
+    .header {
+        padding: 15px 15px;
+    }
+
+    .header h1 {
+        font-size: 18px;
+    }
+
+    .messages-container {
+        margin: 10px;
+        padding: 15px;
+        gap: 12px;
+    }
+
+    .message {
+        max-width: 90%;
+    }
+
+    .message-bubble {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .message-bubble p {
+        font-size: 14px;
+    }
+
+    .input-area {
+        padding: 12px;
+        margin: 0 10px 10px 10px;
+        gap: 10px;
+    }
+
+    .ai-button {
+        width: 40px;
+        height: 40px;
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    .ai-icon {
+        font-size: 18px;
+    }
+
+    .message-input {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+
+    .send-button {
+        padding: 10px 20px;
+        font-size: 14px;
+        min-width: 50px;
+    }
+
+    .ai-suggestions-panel {
+        bottom: 140px;
+        width: calc(100% - 20px);
+        max-width: none;
+    }
+
+    .ai-suggestions-header {
+        padding: 12px 15px;
+        font-size: 14px;
+    }
+
+    .close-suggestions-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 14px;
+    }
+
+    .ai-suggestions-content {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .ai-suggestion-item {
+        padding: 12px 14px;
+        gap: 10px;
+    }
+
+    .suggestion-icon {
+        font-size: 20px;
+    }
+
+    .suggestion-text {
+        font-size: 13px;
+    }
+
+    .scroll-to-input-btn {
+        bottom: 20px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+        font-size: 20px;
+    }
+}
+
+/* iPhone 12/13/14 Pro, iPhone 12/13/14 (390px - 428px) */
+@media (min-width: 429px) and (max-width: 767px) {
+    .header {
+        padding: 18px 20px;
+    }
+
+    .header h1 {
+        font-size: 20px;
+    }
+
+    .messages-container {
+        margin: 12px;
+        padding: 18px;
+    }
+
+    .message {
+        max-width: 85%;
+    }
+
+    .input-area {
+        padding: 15px;
+        margin: 0 12px 12px 12px;
+    }
+
+    .ai-button {
+        width: 44px;
+        height: 44px;
+    }
+
+    .send-button {
+        padding: 12px 24px;
+    }
+
+    .ai-suggestions-panel {
+        bottom: 150px;
+        width: calc(100% - 24px);
+    }
+
+    .ai-suggestions-content {
+        padding: 14px;
+    }
+
+    .ai-suggestion-item {
+        padding: 14px 16px;
+    }
+
+    .suggestion-text {
+        font-size: 14px;
+    }
+}
+
+/* iPad Mini, iPad (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .app-container {
+        max-width: 100%;
+    }
+
+    .header {
+        padding: 22px 30px;
+    }
+
+    .header h1 {
+        font-size: 26px;
+    }
+
+    .messages-container {
+        margin: 18px;
+        padding: 22px;
+    }
+
+    .message {
+        max-width: 75%;
+    }
+
+    .message-bubble {
+        padding: 16px 20px;
+    }
+
+    .input-area {
+        padding: 20px;
+        margin: 0 18px 25px 18px;
+        background: rgba(255, 255, 255, 1);
+        box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.2),
+                    0 8px 20px rgba(0, 0, 0, 0.15),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        border: 3px solid rgba(220, 20, 60, 0.2);
+    }
+
+    .ai-button {
+        width: 48px;
+        height: 48px;
+        padding: 14px;
+    }
+
+    .message-input {
+        padding: 16px 20px;
+        font-size: 16px;
+        border: 3px solid rgba(220, 20, 60, 0.4);
+    }
+
+    .send-button {
+        padding: 16px 28px;
+        font-size: 16px;
+    }
+
+    .ai-suggestions-panel {
+        bottom: 180px;
+        width: calc(100% - 36px);
+        max-width: 600px;
+    }
+
+    .ai-suggestions-header {
+        padding: 16px 22px;
+        font-size: 17px;
+    }
+
+    .close-suggestions-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 17px;
+    }
+
+    .ai-suggestions-content {
+        padding: 16px;
+    }
+
+    .ai-suggestion-item {
+        padding: 18px 20px;
+    }
+
+    .suggestion-icon {
+        font-size: 26px;
+    }
+
+    .suggestion-text {
+        font-size: 16px;
+    }
+}
+
+/* iPad Pro (1024px - 1366px) */
+@media (min-width: 1025px) and (max-width: 1366px) {
+    .app-container {
+        max-width: 1000px;
+    }
+
+    .messages-container {
+        margin: 20px;
+        padding: 25px;
+    }
+
+    .message {
+        max-width: 70%;
+    }
+}
+
+/* Laptops and smaller desktops (1367px - 1920px) */
+@media (min-width: 1367px) and (max-width: 1920px) {
+    .app-container {
+        max-width: 1200px;
+    }
+
+    .header {
+        padding: 25px 35px;
+    }
+
+    .header h1 {
+        font-size: 28px;
+    }
+
+    .messages-container {
+        margin: 25px;
+        padding: 30px;
+    }
+
+    .message {
+        max-width: 65%;
+    }
+
+    .message-bubble {
+        padding: 16px 22px;
+    }
+
+    .message-bubble p {
+        font-size: 16px;
+    }
+
+    .input-area {
+        padding: 22px;
+        margin: 0 25px 25px 25px;
+    }
+
+    .message-input {
+        padding: 16px 22px;
+        font-size: 16px;
+    }
+
+    .send-button {
+        padding: 16px 36px;
+        font-size: 16px;
+    }
+}
+
+/* Large monitors (1921px and above) */
+@media (min-width: 1921px) {
+    .app-container {
+        max-width: 1400px;
+    }
+
+    .header {
+        padding: 30px 40px;
+    }
+
+    .header h1 {
+        font-size: 32px;
+    }
+
+    .messages-container {
+        margin: 30px;
+        padding: 35px;
+        gap: 20px;
+    }
+
+    .message {
+        max-width: 60%;
+    }
+
+    .message-bubble {
+        padding: 18px 24px;
+    }
+
+    .message-bubble p {
+        font-size: 17px;
+    }
+
+    .message-timestamp {
+        font-size: 13px;
+    }
+
+    .input-area {
+        padding: 25px;
+        margin: 0 30px 30px 30px;
+        gap: 20px;
+    }
+
+    .message-input {
+        padding: 18px 24px;
+        font-size: 17px;
+    }
+
+    .send-button {
+        padding: 18px 40px;
+        font-size: 17px;
+    }
+}
