@@ -49,15 +49,6 @@ body {
     }
 }
 
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
-}
-
 /* Common Button Styles */
 .btn {
     padding: 15px 30px;

@@ -12,7 +12,7 @@
         <!-- Header -->
         <header class="header">
             <h1>LifeSync</h1>
-            <div id="userInfo" style="font-size: 14px; margin-top: 5px;"></div>
+            <div id="userInfo" style="font-size: 14px; margin-top: 5px; color:white"></div>
         </header>
 
         <!-- Messages Area -->
@@ -25,8 +25,33 @@
             </div>
         </div>
 
+        <!-- AI Suggestions Panel -->
+        <div id="aiSuggestionsPanel" class="ai-suggestions-panel">
+            <div class="ai-suggestions-header">
+                <span>AI Suggestions</span>
+                <button id="closeSuggestionsBtn" class="close-suggestions-btn">✕</button>
+            </div>
+            <div class="ai-suggestions-content">
+                <button class="ai-suggestion-item" data-suggestion="1">
+                    <span class="suggestion-icon">✅</span>
+                    <span class="suggestion-text">Suggestion 1 (placeholder)</span>
+                </button>
+                <button class="ai-suggestion-item" data-suggestion="2">
+                    <span class="suggestion-icon">❌</span>
+                    <span class="suggestion-text">Suggestion 2 (placeholder)</span>
+                </button>
+                <button class="ai-suggestion-item" data-suggestion="3">
+                    <span class="suggestion-icon">😐</span>
+                    <span class="suggestion-text">Suggestion 3 (placeholder)</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Input Area -->
         <div class="input-area">
+            <button id="aiButton" class="ai-button" title="AI Suggestions">
+                <span class="ai-icon">✨</span>
+            </button>
             <input
                 type="text"
                 id="messageInput"
@@ -36,6 +61,11 @@
             >
             <button id="sendButton" class="send-button">↑</button>
         </div>
+
+        <!-- Scroll to Input Button (for small devices) -->
+        <button id="scrollToInputBtn" class="scroll-to-input-btn" title="Scroll to textbox">
+            ✎
+        </button>
     </div>
 
     <script>
@@ -51,6 +81,6 @@
             document.getElementById('userInfo').textContent = 'Logged in as: ' + username;
         }
     </script>
-    <script src="../app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

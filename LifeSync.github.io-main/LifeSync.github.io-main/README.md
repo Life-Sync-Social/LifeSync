@@ -19,55 +19,73 @@ A modern, responsive texting interface built with HTML, CSS, and vanilla JavaScr
 
 ### Running the App
 
-Start a local web server:
+**Important:** Start the server from the project root (the folder that contains `index.html`, `first_page/`, `login_signup/`, etc.). Otherwise `../` links will break.
 
 ```bash
-# Navigate to the src directory
-cd src
+# Navigate to the project root (where index.html lives)
+cd LifeSync.github.io-main/LifeSync.github.io-main
 
 # Python 3
 python3 -m http.server 8080
 
-# Or use any other local server
+# Or port 8000
+python3 -m http.server 8000
 ```
 
-Then open your browser to `http://localhost:8080/main.html`
+Then open your browser to:
+
+- **`http://localhost:8080/`** (or `http://localhost:8000/` if you used port 8000)
+
+The app redirects to the landing page. Do **not** use `main.html` — it does not exist.
+
+### Chatbot backend (optional)
+
+For the AI chatbot in the Texting UI:
+
+```bash
+cd server
+npm install
+npm start
+```
+
+Backend runs on `http://localhost:3001`. Keep it running while using the Texting page.
 
 ## App Flow
 
-1. **main.html** - Landing page with features and call-to-action buttons
-2. **login.html** - Login page (any username/password works for demo)
-3. **index.html** - Chat interface (requires login)
+1. **index.html** → redirects to **first_page/first_page.html** (landing)
+2. **login.html** / **signup.html** — Auth (any username/password for demo)
+3. **home_page/index.html** — Dashboard after login
+4. **texting_ui/texting.html** — Chat interface (linked from dashboard)
 
 ## Project Structure
 
 ```
-LifeSync/
-├── src/
-│   ├── main.html       # Landing page
-│   ├── login.html      # Login page
-│   ├── index.html      # Chat interface
-│   ├── styles.css      # All styling
-│   └── app.js          # Chat functionality
+LifeSync.github.io-main/
+├── index.html          # Entry point, redirects to first_page
+├── base.css            # Shared styles
+├── first_page/         # Landing
+├── login_signup/       # Login, signup
+├── home_page/          # Dashboard
+├── texting_ui/         # Chat UI
+├── server/             # Chat API (Node)
 └── README.md
 ```
 
 ## Usage
 
-1. Open `main.html` in your browser
-2. Click "Get Started" or "Login"
-3. Enter any username and password
-4. Start chatting in the texting interface!
-5. Messages appear with timestamps
-6. The app auto-responds for testing
+1. Open **`http://localhost:8080/`** (or your chosen port) in the browser.
+2. Click "Get Started" or "Login".
+3. Enter any username and password.
+4. From the dashboard, click **Texting** in the sidebar.
+5. Start chatting; the AI replies if the backend is running.
 
 ## Customization
 
 ### Colors
 
-Edit `styles.css` to customize:
+Edit `base.css` and page-specific CSS (e.g. `dashboard.css`, `texting.css`) to customize:
 
-- **Gradient backgrounds**: `.home-container` and `.login-container`
+- **Gradient backgrounds**: `.home-container`, `.login-container`
 - **Primary color**: `.btn-primary` and related elements
 - **Chat colors**: `.message-bubble`, `.send-button`
 
@@ -75,13 +93,13 @@ Edit `styles.css` to customize:
 
 Currently uses simple client-side session storage. To add real authentication:
 
-1. Update the login form submission in `login.html`
+1. Update the login form submission in `login_signup/login.html`
 2. Add server-side validation
 3. Use proper session tokens or JWT
 
-### Auto-response
+### Chat / auto-response
 
-Edit the `sendMessage()` function in `app.js` to customize or disable auto-responses.
+Edit `texting_ui/app.js` (e.g. `sendMessage`) for chat behavior. The AI backend is in `server/index.js`.
 
 ## Browser Compatibility
 
