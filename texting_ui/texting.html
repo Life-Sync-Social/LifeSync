@@ -25,8 +25,33 @@
             </div>
         </div>
 
+        <!-- AI Suggestions Panel -->
+        <div id="aiSuggestionsPanel" class="ai-suggestions-panel">
+            <div class="ai-suggestions-header">
+                <span>AI Suggestions</span>
+                <button id="closeSuggestionsBtn" class="close-suggestions-btn">✕</button>
+            </div>
+            <div class="ai-suggestions-content">
+                <button class="ai-suggestion-item" data-suggestion="1">
+                    <span class="suggestion-icon">✅</span>
+                    <span class="suggestion-text">Suggestion 1 (placeholder)</span>
+                </button>
+                <button class="ai-suggestion-item" data-suggestion="2">
+                    <span class="suggestion-icon">❌</span>
+                    <span class="suggestion-text">Suggestion 2 (placeholder)</span>
+                </button>
+                <button class="ai-suggestion-item" data-suggestion="3">
+                    <span class="suggestion-icon">😐</span>
+                    <span class="suggestion-text">Suggestion 3 (placeholder)</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Input Area -->
         <div class="input-area">
+            <button id="aiButton" class="ai-button" title="AI Suggestions">
+                <span class="ai-icon">✨</span>
+            </button>
             <input
                 type="text"
                 id="messageInput"

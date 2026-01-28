@@ -4,6 +4,10 @@ const sendButton = document.getElementById('sendButton');
 const messagesContainer = document.getElementById('messagesContainer');
 const scrollToInputBtn = document.getElementById('scrollToInputBtn');
 const inputArea = document.querySelector('.input-area');
+const aiButton = document.getElementById('aiButton');
+const aiSuggestionsPanel = document.getElementById('aiSuggestionsPanel');
+const closeSuggestionsBtn = document.getElementById('closeSuggestionsBtn');
+const aiSuggestionItems = document.querySelectorAll('.ai-suggestion-item');
 
 // Format timestamp
 function formatTimestamp() {
@@ -160,3 +164,108 @@ messagesContainer.addEventListener('scroll', toggleScrollButton);
 
 // Initial check for scroll button
 toggleScrollButton();
+
+// ===== AI Suggestions Functionality =====
+
+// Toggle AI suggestions panel
+function toggleAISuggestions() {
+    const isVisible = aiSuggestionsPanel.classList.contains('visible');
+
+    if (isVisible) {
+        hideAISuggestions();
+    } else {
+        showAISuggestions();
+    }
+}
+
+// Show AI suggestions panel
+function showAISuggestions() {
+    aiSuggestionsPanel.classList.add('visible');
+    aiButton.classList.add('active');
+}
+
+// Hide AI suggestions panel
+function hideAISuggestions() {
+    aiSuggestionsPanel.classList.remove('visible');
+    aiButton.classList.remove('active');
+}
+
+// AI button click handler
+aiButton.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleAISuggestions();
+});
+
+// Close button handler
+closeSuggestionsBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    hideAISuggestions();
+});
+
+// AI button hover handler (for desktop)
+if (window.matchMedia('(hover: hover)').matches) {
+    aiButton.addEventListener('mouseenter', function() {
+        showAISuggestions();
+    });
+
+    // Keep panel open when hovering over it
+    aiSuggestionsPanel.addEventListener('mouseenter', function() {
+        showAISuggestions();
+    });
+
+    // Close when mouse leaves both button and panel
+    let hoverTimeout;
+    aiButton.addEventListener('mouseleave', function() {
+        hoverTimeout = setTimeout(() => {
+            if (!aiSuggestionsPanel.matches(':hover')) {
+                hideAISuggestions();
+            }
+        }, 200);
+    });
+
+    aiSuggestionsPanel.addEventListener('mouseleave', function() {
+        hoverTimeout = setTimeout(() => {
+            if (!aiButton.matches(':hover')) {
+                hideAISuggestions();
+            }
+        }, 200);
+    });
+}
+
+// Handle AI suggestion clicks
+aiSuggestionItems.forEach((item, index) => {
+    item.addEventListener('click', function() {
+        const suggestionNumber = this.getAttribute('data-suggestion');
+        const suggestionText = this.querySelector('.suggestion-text').textContent;
+
+        // Insert the suggestion text into the message input
+        messageInput.value = suggestionText;
+
+        // Focus on the input
+        messageInput.focus();
+
+        // Hide the suggestions panel
+        hideAISuggestions();
+
+        // Optional: Add a visual feedback
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            this.style.transform = '';
+        }, 200);
+    });
+});
+
+// Close panel when clicking outside
+document.addEventListener('click', function(e) {
+    if (!aiSuggestionsPanel.contains(e.target) &&
+        !aiButton.contains(e.target)) {
+        hideAISuggestions();
+    }
+});
+
+// Close panel when pressing Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && aiSuggestionsPanel.classList.contains('visible')) {
+        hideAISuggestions();
+    }
+});
