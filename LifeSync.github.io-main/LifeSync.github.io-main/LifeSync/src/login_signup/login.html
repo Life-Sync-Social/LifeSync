@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeSync - Login</title>
+    <link rel="stylesheet" href="../base.css">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h1>LifeSync</h1>
+            <h2>Login to your account</h2>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Enter your username"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">Login</button>
+            </form>
+
+            <div class="login-footer">
+                <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+                <a href="../first_page/first_page.html">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Simple validation (in a real app, this would be server-side)
+            if (username && password) {
+                // Store username in sessionStorage
+                sessionStorage.setItem('username', username);
+                sessionStorage.setItem('isLoggedIn', 'true');
+
+                // Redirect to main page
+                window.location.href = '../home_page/index.html';
+            } else {
+                alert('Please enter both username and password');
+            }
+        });
+    </script>
+</body>
+</html>
