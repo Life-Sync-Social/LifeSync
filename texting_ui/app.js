@@ -9,11 +9,6 @@ const aiSuggestionsPanel = document.getElementById('aiSuggestionsPanel');
 const closeSuggestionsBtn = document.getElementById('closeSuggestionsBtn');
 const aiSuggestionItems = document.querySelectorAll('.ai-suggestion-item');
 
-// Chat API config and conversation state
-const API_BASE = 'http://localhost:3001';
-let past_user_inputs = [];
-let generated_responses = [];
-
 // Format timestamp
 function formatTimestamp() {
     const now = new Date();
@@ -97,16 +92,26 @@ window.addEventListener('resize', function() {
     toggleScrollButton();
 });
 
-// Append a message bubble (user or AI)
-function appendMessage(text, isOwn) {
+// Send message function
+function sendMessage() {
+    const messageText = messageInput.value.trim();
+
+    if (messageText === '') {
+        return;
+    }
+
+    // Add sending animation to button
+    sendButton.classList.add('sending');
+
+    // Create message element
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${isOwn ? 'own-message' : 'other-message'}`;
+    messageDiv.className = 'message own-message';
 
     const messageBubble = document.createElement('div');
     messageBubble.className = 'message-bubble';
 
     const messageP = document.createElement('p');
-    messageP.textContent = text;
+    messageP.textContent = messageText;
 
     const timestamp = document.createElement('span');
     timestamp.className = 'message-timestamp';
@@ -116,82 +121,19 @@ function appendMessage(text, isOwn) {
     messageDiv.appendChild(messageBubble);
     messageDiv.appendChild(timestamp);
 
+    // Add message to container
     messagesContainer.appendChild(messageDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    return messageDiv;
-}
 
-function showTypingIndicator() {
-    const div = document.createElement('div');
-    div.id = 'typing-indicator';
-    div.className = 'message other-message';
-    const bubble = document.createElement('div');
-    bubble.className = 'message-bubble';
-    const p = document.createElement('p');
-    p.textContent = 'AI is typing...';
-    bubble.appendChild(p);
-    div.appendChild(bubble);
-    messagesContainer.appendChild(div);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-function removeTypingIndicator() {
-    const el = document.getElementById('typing-indicator');
-    if (el) el.remove();
-}
-
-// Send message function (calls backend, shows AI reply)
-async function sendMessage() {
-    const messageText = messageInput.value.trim();
-
-    if (messageText === '') {
-        return;
-    }
-
-    sendButton.classList.add('sending');
-    appendMessage(messageText, true);
+    // Clear input
     messageInput.value = '';
+
+    // Scroll to bottom
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    sendButton.disabled = true;
-    messageInput.disabled = true;
-    showTypingIndicator();
-
-    try {
-        const res = await fetch(API_BASE + '/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                past_user_inputs,
-                generated_responses,
-                text: messageText
-            })
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-            appendMessage(data.error || "Couldn't get a reply. Please try again.", false);
-            return;
-        }
-
-        const reply = data.reply;
-        if (reply != null && typeof reply === 'string') {
-            appendMessage(reply, false);
-            past_user_inputs.push(messageText);
-            generated_responses.push(reply);
-        } else {
-            appendMessage("Couldn't get a reply. Please try again.", false);
-        }
-    } catch (_err) {
-        appendMessage("Couldn't get a reply. Please try again.", false);
-    } finally {
-        removeTypingIndicator();
-        sendButton.disabled = false;
-        messageInput.disabled = false;
+    // Remove sending animation after it completes
+    setTimeout(() => {
         sendButton.classList.remove('sending');
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
+    }, 400);
 }
 
 // Send button click handler
