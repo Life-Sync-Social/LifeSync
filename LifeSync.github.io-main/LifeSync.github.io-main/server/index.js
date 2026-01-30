@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 
 const HF_TOKEN = process.env.HF_TOKEN;
-const HF_MODEL = 'microsoft/DialoGPT-medium';
+const HF_MODEL = process.env.HF_CHAT_MODEL || 'HuggingFaceTB/SmolLM3-3B:hf-inference';
 const PORT = process.env.PORT || 3001;
 
 if (!HF_TOKEN || HF_TOKEN === 'your_hugging_face_token_here') {
@@ -31,17 +31,32 @@ function buildPrompt(past_user_inputs, generated_responses, text) {
   return out;
 }
 
+function stripThinkTags(text) {
+  if (typeof text !== 'string') return text;
+  let out = text;
+  const thinkRegex = /<think>[\s\S]*?<\/think>/gi;
+  out = out.replace(thinkRegex, '').trim();
+  if (/^<think>[\s\S]*/i.test(out)) {
+    out = out.replace(/^<think>[\s\S]*/i, '').trim();
+  }
+  return out || text;
+}
+
+const HF_CHAT_URL = 'https://router.huggingface.co/v1/chat/completions';
+
 async function callHuggingFace(prompt, retries = 1) {
-  const url = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
-  const res = await fetch(url, {
+  const res = await fetch(HF_CHAT_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${HF_TOKEN}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      inputs: prompt,
-      parameters: { max_new_tokens: 100, temperature: 0.8 },
+      model: HF_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 100,
+      temperature: 0.8,
+      stream: false,
     }),
   });
 
@@ -58,7 +73,12 @@ async function callHuggingFace(prompt, retries = 1) {
     throw err;
   }
 
-  return data;
+  const content = data.choices?.[0]?.message?.content;
+  if (content != null) {
+    const cleaned = stripThinkTags(content);
+    return { generated_text: cleaned };
+  }
+  throw new Error(data.error || 'Invalid chat completion response');
 }
 
 app.post('/api/chat', async (req, res) => {
