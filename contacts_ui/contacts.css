@@ -1,0 +1,823 @@
+/* Contacts Page Styles */
+
+/* Animations */
+@keyframes slideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 100%;
+    margin: 0 auto;
+    background: transparent;
+    overflow: hidden;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    padding: 20px 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
+                0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    flex: 1;
+}
+
+.personalization-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    margin-left: 15px;
+}
+
+.personalization-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1) rotate(45deg);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+.personalization-btn:active {
+    transform: scale(0.95) rotate(45deg);
+}
+
+.personalization-icon {
+    font-size: 22px;
+}
+
+/* Contacts Container */
+.contacts-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 25px;
+    background-color: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3),
+                0 5px 15px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.contacts-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.contacts-container::-webkit-scrollbar-track {
+    background: rgba(220, 220, 220, 0.5);
+    border-radius: 10px;
+}
+
+.contacts-container::-webkit-scrollbar-thumb {
+    background: #dc143c;
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.contacts-container::-webkit-scrollbar-thumb:hover {
+    background: #c92a2a;
+}
+
+/* Contact Card */
+.contact-card {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1),
+                0 3px 6px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(220, 20, 60, 0.15);
+    transition: all 0.3s ease;
+    animation: slideIn 0.4s ease-out;
+    gap: 15px;
+    cursor: pointer;
+}
+
+.contact-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15),
+                0 5px 10px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border-color: rgba(220, 20, 60, 0.3);
+}
+
+/* Contact Avatar */
+.contact-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: visible;
+    border: 3px solid #dc143c;
+    box-shadow: 0 4px 10px rgba(220, 20, 60, 0.3);
+    flex-shrink: 0;
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.contact-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+/* Status Indicator */
+.status-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 3px solid #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.status-indicator.online {
+    background-color: #4caf50;
+}
+
+.status-indicator.offline {
+    background-color: #9e9e9e;
+}
+
+/* Contact Info */
+.contact-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.contact-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2c2c2c;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Contact Streak */
+.contact-streak {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #666;
+}
+
+.streak-icon {
+    font-size: 16px;
+}
+
+.streak-count {
+    font-weight: 600;
+    color: #dc143c;
+}
+
+/* Contact Menu */
+.contact-menu {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.contact-menu.active {
+    max-height: 60px;
+    opacity: 1;
+}
+
+.menu-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    min-width: 60px;
+}
+
+.menu-icon {
+    font-size: 20px;
+}
+
+.menu-label {
+    font-size: 11px;
+    color: #ffffff;
+}
+
+.text-option {
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    color: #ffffff;
+}
+
+.text-option:hover {
+    background: linear-gradient(135deg, #ff1744 0%, #dc143c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(220, 20, 60, 0.4);
+}
+
+.call-option {
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+    color: #ffffff;
+}
+
+.call-option:hover {
+    background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
+}
+
+.edit-option {
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    color: #ffffff;
+}
+
+.edit-option:hover {
+    background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(33, 150, 243, 0.4);
+}
+
+.menu-option:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Add Contact Button (Floating) */
+.add-contact-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    color: white;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    font-size: 32px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(220, 20, 60, 0.4),
+                0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-contact-btn:hover {
+    background: linear-gradient(135deg, #ff1744 0%, #dc143c 100%);
+    transform: scale(1.15) rotate(90deg);
+    box-shadow: 0 10px 25px rgba(220, 20, 60, 0.5),
+                0 5px 10px rgba(0, 0, 0, 0.25);
+}
+
+.add-contact-btn:active {
+    transform: scale(1.05) rotate(90deg);
+}
+
+.add-icon {
+    line-height: 1;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+    border-radius: 25px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3),
+                0 8px 20px rgba(0, 0, 0, 0.2);
+    border: 3px solid rgba(220, 20, 60, 0.3);
+    width: 90%;
+    max-width: 500px;
+    overflow: hidden;
+    animation: slideIn 0.3s ease-out;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #dc143c 0%, #c92a2a 100%);
+    color: white;
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.close-modal-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.close-modal-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1) rotate(90deg);
+}
+
+.close-modal-btn:active {
+    transform: scale(0.95) rotate(90deg);
+}
+
+.modal-body {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.modal-input,
+.modal-select {
+    width: 100%;
+    padding: 14px 20px;
+    border: 2px solid rgba(220, 20, 60, 0.3);
+    border-radius: 15px;
+    background: #ffffff;
+    color: #2c2c2c;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+    font-weight: 500;
+}
+
+.modal-input:focus,
+.modal-select:focus {
+    border-color: #dc143c;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05),
+                0 0 0 3px rgba(220, 20, 60, 0.1);
+}
+
+.modal-input::placeholder {
+    color: #999999;
+}
+
+.personalization-option {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.personalization-option label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #2c2c2c;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.personalization-option input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.modal-footer {
+    padding: 20px 25px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 2px solid rgba(220, 20, 60, 0.1);
+    background: rgba(220, 20, 60, 0.05);
+}
+
+.modal-footer .btn {
+    padding: 12px 24px;
+    margin: 0;
+}
+
+/* Responsive Design */
+
+/* Very small devices */
+@media (max-height: 600px) {
+    .contacts-container {
+        max-height: calc(100vh - 150px);
+    }
+}
+
+/* iPhone SE, iPhone 12/13 mini (320px - 375px) */
+@media (max-width: 428px) {
+    .header {
+        padding: 15px 15px;
+    }
+
+    .header h1 {
+        font-size: 18px;
+    }
+
+    .personalization-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+        margin-left: 10px;
+    }
+
+    .contacts-container {
+        margin: 10px;
+        padding: 15px;
+        gap: 12px;
+    }
+
+    .contact-card {
+        padding: 15px;
+        gap: 12px;
+    }
+
+    .contact-avatar {
+        width: 50px;
+        height: 50px;
+    }
+
+    .contact-name {
+        font-size: 16px;
+    }
+
+    .contact-streak {
+        font-size: 12px;
+    }
+
+    .streak-icon {
+        font-size: 14px;
+    }
+
+    .status-indicator {
+        width: 14px;
+        height: 14px;
+        border-width: 2px;
+    }
+
+    .menu-option {
+        min-width: 50px;
+        padding: 6px 10px;
+    }
+
+    .menu-icon {
+        font-size: 18px;
+    }
+
+    .menu-label {
+        font-size: 10px;
+    }
+
+    .contact-menu.active {
+        max-height: 55px;
+    }
+
+    .add-contact-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 28px;
+        bottom: 20px;
+        right: 20px;
+    }
+
+    .modal-content {
+        width: 95%;
+    }
+
+    .modal-header {
+        padding: 15px 20px;
+    }
+
+    .modal-header h2 {
+        font-size: 18px;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        padding: 15px 20px;
+        flex-direction: column;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+    }
+}
+
+/* iPhone 12/13/14 Pro, iPhone 12/13/14 (390px - 428px) */
+@media (min-width: 429px) and (max-width: 767px) {
+    .header {
+        padding: 18px 20px;
+    }
+
+    .header h1 {
+        font-size: 20px;
+    }
+
+    .personalization-btn {
+        width: 38px;
+        height: 38px;
+    }
+
+    .contacts-container {
+        margin: 12px;
+        padding: 18px;
+    }
+
+    .contact-card {
+        padding: 18px;
+    }
+
+    .contact-avatar {
+        width: 55px;
+        height: 55px;
+    }
+
+    .status-indicator {
+        width: 15px;
+        height: 15px;
+    }
+
+    .add-contact-btn {
+        width: 55px;
+        height: 55px;
+        font-size: 30px;
+    }
+}
+
+/* iPad Mini, iPad (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .header {
+        padding: 22px 30px;
+    }
+
+    .header h1 {
+        font-size: 26px;
+    }
+
+    .personalization-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 22px;
+    }
+
+    .contacts-container {
+        margin: 18px;
+        padding: 22px;
+    }
+
+    .contact-card {
+        padding: 22px;
+    }
+
+    .contact-avatar {
+        width: 65px;
+        height: 65px;
+    }
+
+    .contact-name {
+        font-size: 19px;
+    }
+
+    .contact-streak {
+        font-size: 15px;
+    }
+
+    .status-indicator {
+        width: 17px;
+        height: 17px;
+    }
+
+    .menu-option {
+        min-width: 65px;
+        padding: 10px 14px;
+    }
+
+    .menu-icon {
+        font-size: 22px;
+    }
+
+    .contact-menu.active {
+        max-height: 65px;
+    }
+}
+
+/* iPad Pro (1024px - 1366px) */
+@media (min-width: 1025px) and (max-width: 1366px) {
+    .contacts-container {
+        max-width: 1000px;
+        margin: 20px auto;
+    }
+}
+
+/* Laptops and smaller desktops (1367px - 1920px) */
+@media (min-width: 1367px) and (max-width: 1920px) {
+    .contacts-container {
+        max-width: 1200px;
+        margin: 25px auto;
+    }
+
+    .header {
+        padding: 25px 35px;
+    }
+
+    .header h1 {
+        font-size: 28px;
+    }
+
+    .contact-card {
+        padding: 25px;
+    }
+
+    .contact-avatar {
+        width: 70px;
+        height: 70px;
+    }
+
+    .contact-name {
+        font-size: 20px;
+    }
+
+    .contact-streak {
+        font-size: 15px;
+    }
+
+    .status-indicator {
+        width: 18px;
+        height: 18px;
+    }
+
+    .menu-option {
+        min-width: 70px;
+        padding: 10px 16px;
+    }
+
+    .menu-icon {
+        font-size: 24px;
+    }
+
+    .menu-label {
+        font-size: 12px;
+    }
+
+    .contact-menu.active {
+        max-height: 70px;
+    }
+}
+
+/* Large monitors (1921px and above) */
+@media (min-width: 1921px) {
+    .contacts-container {
+        max-width: 1400px;
+        margin: 30px auto;
+    }
+
+    .header {
+        padding: 30px 40px;
+    }
+
+    .header h1 {
+        font-size: 32px;
+    }
+
+    .personalization-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 24px;
+    }
+
+    .contact-card {
+        padding: 28px;
+    }
+
+    .contact-avatar {
+        width: 75px;
+        height: 75px;
+    }
+
+    .contact-name {
+        font-size: 21px;
+    }
+
+    .contact-streak {
+        font-size: 16px;
+    }
+
+    .status-indicator {
+        width: 19px;
+        height: 19px;
+    }
+
+    .menu-option {
+        min-width: 75px;
+        padding: 12px 18px;
+    }
+
+    .menu-icon {
+        font-size: 26px;
+    }
+
+    .menu-label {
+        font-size: 13px;
+    }
+
+    .contact-menu.active {
+        max-height: 75px;
+    }
+}

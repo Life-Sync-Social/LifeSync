@@ -11,7 +11,7 @@
     <div class="app-container">
         <!-- Header -->
         <header class="header">
-            <h1>LifeSync</h1>
+            <h1 id="chatTitle">LifeSync</h1>
             <div id="userInfo" style="font-size: 14px; margin-top: 5px; color:white"></div>
         </header>
 
@@ -79,6 +79,21 @@
         } else {
             // Display username
             document.getElementById('userInfo').textContent = 'Logged in as: ' + username;
+        }
+
+        // Check for contact parameter in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const contactName = urlParams.get('contact');
+
+        if (contactName) {
+            // Update the chat title to show the contact's name
+            document.getElementById('chatTitle').textContent = contactName;
+
+            // Update the welcome message
+            const welcomeMessage = document.querySelector('.own-message .message-bubble p');
+            if (welcomeMessage) {
+                welcomeMessage.textContent = `Chat with ${contactName}`;
+            }
         }
     </script>
     <script src="app.js"></script>

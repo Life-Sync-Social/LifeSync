@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeSync - Contacts</title>
+    <link rel="stylesheet" href="../base.css">
+    <link rel="stylesheet" href="contacts.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1 id="pageTitle">Friends</h1>
+            <button id="personalizationBtn" class="personalization-btn" title="Personalization">
+                <span class="personalization-icon">⚙️</span>
+            </button>
+        </header>
+
+        <!-- Contacts Container -->
+        <div class="contacts-container" id="contactsContainer">
+            <!-- Sample contact cards (these will be dynamically generated) -->
+            <div class="contact-card" onclick="toggleContactMenu(this)">
+                <div class="contact-avatar">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Contact Avatar">
+                    <span class="status-indicator online"></span>
+                </div>
+                <div class="contact-info">
+                    <h3 class="contact-name">John Doe</h3>
+                    <div class="contact-streak">
+                        <span class="streak-icon">🔥</span>
+                        <span class="streak-count">7 day streak</span>
+                    </div>
+                </div>
+                <div class="contact-menu">
+                    <button class="menu-option text-option" onclick="event.stopPropagation(); openChat('John Doe')">
+                        <span class="menu-icon">💬</span>
+                        <span class="menu-label">Text</span>
+                    </button>
+                    <button class="menu-option call-option" onclick="event.stopPropagation(); callContact('John Doe')">
+                        <span class="menu-icon">📞</span>
+                        <span class="menu-label">Call</span>
+                    </button>
+                    <button class="menu-option edit-option" onclick="event.stopPropagation(); editContact('John Doe')">
+                        <span class="menu-icon">✏️</span>
+                        <span class="menu-label">Edit</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="contact-card" onclick="toggleContactMenu(this)">
+                <div class="contact-avatar">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Contact Avatar">
+                    <span class="status-indicator offline"></span>
+                </div>
+                <div class="contact-info">
+                    <h3 class="contact-name">Jane Smith</h3>
+                    <div class="contact-streak">
+                        <span class="streak-icon">🔥</span>
+                        <span class="streak-count">3 day streak</span>
+                    </div>
+                </div>
+                <div class="contact-menu">
+                    <button class="menu-option text-option" onclick="event.stopPropagation(); openChat('Jane Smith')">
+                        <span class="menu-icon">💬</span>
+                        <span class="menu-label">Text</span>
+                    </button>
+                    <button class="menu-option call-option" onclick="event.stopPropagation(); callContact('Jane Smith')">
+                        <span class="menu-icon">📞</span>
+                        <span class="menu-label">Call</span>
+                    </button>
+                    <button class="menu-option edit-option" onclick="event.stopPropagation(); editContact('Jane Smith')">
+                        <span class="menu-icon">✏️</span>
+                        <span class="menu-label">Edit</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Contact Button (Floating) -->
+        <button id="addContactBtn" class="add-contact-btn" title="Add Friend">
+            <span class="add-icon">+</span>
+        </button>
+
+        <!-- Add Contact Modal -->
+        <div id="addContactModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Add New Friend</h2>
+                    <button id="closeAddModalBtn" class="close-modal-btn">✕</button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="contactNameInput" class="modal-input" placeholder="Friend's Name">
+                    <input type="text" id="contactAvatarInput" class="modal-input" placeholder="Avatar URL (optional)">
+                </div>
+                <div class="modal-footer">
+                    <button id="cancelAddBtn" class="btn btn-secondary">Cancel</button>
+                    <button id="saveContactBtn" class="btn btn-primary">Add Friend</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personalization Modal -->
+        <div id="personalizationModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Personalization</h2>
+                    <button id="closePersonalizationModalBtn" class="close-modal-btn">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="personalization-option">
+                        <label>
+                            <input type="checkbox" id="showOnlineOnly">
+                            Show online friends only
+                        </label>
+                    </div>
+                    <div class="personalization-option">
+                        <label>
+                            <input type="checkbox" id="sortAlphabetically">
+                            Sort alphabetically
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="closePersonalizationBtn" class="btn btn-primary">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+        const username = sessionStorage.getItem('username');
+
+        if (!isLoggedIn) {
+            // Redirect to login if not logged in
+            window.location.href = '../login_signup/login.html';
+        }
+
+        // Function to toggle contact menu
+        function toggleContactMenu(card) {
+            const menu = card.querySelector('.contact-menu');
+            const allMenus = document.querySelectorAll('.contact-menu');
+
+            // Close all other menus
+            allMenus.forEach(m => {
+                if (m !== menu) {
+                    m.classList.remove('active');
+                }
+            });
+
+            // Toggle current menu
+            menu.classList.toggle('active');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.contact-card')) {
+                document.querySelectorAll('.contact-menu').forEach(menu => {
+                    menu.classList.remove('active');
+                });
+            }
+        });
+
+        // Function to open chat with a contact
+        function openChat(contactName) {
+            window.location.href = '../texting_ui/texting.html?contact=' + encodeURIComponent(contactName);
+        }
+
+        // Function to call a contact
+        function callContact(contactName) {
+            alert('Calling ' + contactName + '...');
+            // Add your call functionality here
+        }
+
+        // Function to edit a contact
+        function editContact(contactName) {
+            alert('Editing ' + contactName);
+            // Add your edit functionality here
+        }
+
+        // Add Contact Modal
+        const addContactBtn = document.getElementById('addContactBtn');
+        const addContactModal = document.getElementById('addContactModal');
+        const closeAddModalBtn = document.getElementById('closeAddModalBtn');
+        const cancelAddBtn = document.getElementById('cancelAddBtn');
+        const saveContactBtn = document.getElementById('saveContactBtn');
+
+        addContactBtn.addEventListener('click', () => {
+            addContactModal.style.display = 'flex';
+        });
+
+        closeAddModalBtn.addEventListener('click', () => {
+            addContactModal.style.display = 'none';
+        });
+
+        cancelAddBtn.addEventListener('click', () => {
+            addContactModal.style.display = 'none';
+        });
+
+        saveContactBtn.addEventListener('click', () => {
+            const name = document.getElementById('contactNameInput').value;
+            const avatarInput = document.getElementById('contactAvatarInput').value.trim();
+            const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+            const avatar = avatarInput !== '' ? avatarInput : defaultAvatar;
+
+            if (name.trim() !== '') {
+                const contactsContainer = document.getElementById('contactsContainer');
+                const newContactCard = document.createElement('div');
+                newContactCard.className = 'contact-card';
+                newContactCard.onclick = function() { toggleContactMenu(this); };
+                newContactCard.innerHTML = `
+                    <div class="contact-avatar">
+                        <img src="${avatar}" alt="Contact Avatar">
+                        <span class="status-indicator online"></span>
+                    </div>
+                    <div class="contact-info">
+                        <h3 class="contact-name">${name}</h3>
+                        <div class="contact-streak">
+                            <span class="streak-icon">🔥</span>
+                            <span class="streak-count">0 day streak</span>
+                        </div>
+                    </div>
+                    <div class="contact-menu">
+                        <button class="menu-option text-option" onclick="event.stopPropagation(); openChat('${name}')">
+                            <span class="menu-icon">💬</span>
+                            <span class="menu-label">Text</span>
+                        </button>
+                        <button class="menu-option call-option" onclick="event.stopPropagation(); callContact('${name}')">
+                            <span class="menu-icon">📞</span>
+                            <span class="menu-label">Call</span>
+                        </button>
+                        <button class="menu-option edit-option" onclick="event.stopPropagation(); editContact('${name}')">
+                            <span class="menu-icon">✏️</span>
+                            <span class="menu-label">Edit</span>
+                        </button>
+                    </div>
+                `;
+                contactsContainer.appendChild(newContactCard);
+
+                // Clear inputs
+                document.getElementById('contactNameInput').value = '';
+                document.getElementById('contactAvatarInput').value = '';
+
+                // Close modal
+                addContactModal.style.display = 'none';
+            }
+        });
+
+        // Personalization Modal
+        const personalizationBtn = document.getElementById('personalizationBtn');
+        const personalizationModal = document.getElementById('personalizationModal');
+        const closePersonalizationModalBtn = document.getElementById('closePersonalizationModalBtn');
+        const closePersonalizationBtn = document.getElementById('closePersonalizationBtn');
+
+        personalizationBtn.addEventListener('click', () => {
+            personalizationModal.style.display = 'flex';
+        });
+
+        closePersonalizationModalBtn.addEventListener('click', () => {
+            personalizationModal.style.display = 'none';
+        });
+
+        closePersonalizationBtn.addEventListener('click', () => {
+            personalizationModal.style.display = 'none';
+        });
+
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === addContactModal) {
+                addContactModal.style.display = 'none';
+            }
+            if (e.target === personalizationModal) {
+                personalizationModal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
