@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeSync - AR Filters</title>
+    <link rel="stylesheet" href="../base.css">
+    <link rel="stylesheet" href="ar_filters.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <button onclick="window.location.href='../home_page/index.html'" class="back-btn" title="Back to Home">
+                <span class="back-icon">←</span>
+            </button>
+            <h1>AR Filters</h1>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-header">
+                <h2>AR Filters</h2>
+            </div>
+
+            <!-- AI Filter Generator -->
+            <div class="ai-generator-section">
+                <div class="ai-input-container">
+                    <input
+                        type="text"
+                        id="aiFilterInput"
+                        class="ai-filter-input"
+                        placeholder="Describe your AR filter... (e.g., 'Add sparkles and butterflies')"
+                        autocomplete="off">
+                    <button id="generateBtn" class="generate-btn">
+                        <span class="generate-icon">✨</span>
+                        <span class="generate-text">Generate</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Options -->
+            <div class="filter-options">
+                <button class="option-btn active" id="defaultFiltersBtn">
+                    <span class="option-icon">📚</span>
+                    <span class="option-text">Default Filters</span>
+                </button>
+                <button class="option-btn" id="savedFiltersBtn">
+                    <span class="option-icon">⭐</span>
+                    <span class="option-text">Saved Filters</span>
+                </button>
+            </div>
+
+            <!-- Filters Display Area -->
+            <div id="filtersDisplay" class="filters-display">
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <div class="card-icon">💄</div>
+                        <h3 class="card-title">Beauty Filters</h3>
+                        <p class="card-description">Multiple beauty filter types for enhanced apperance</p>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <div class="card-icon">🎨</div>
+                        <h3 class="card-title">Miscellaneous Filters</h3>
+                        <p class="card-description">Various miscellaneous filters for unique effects</p>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <div class="card-icon">👤</div>
+                        <h3 class="card-title">Avatar</h3>
+                        <p class="card-description">Bring your avatar to life with custom animations and effects</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon">🌿</div>
+                        <h3 class="card-title">Environments</h3>
+                        <p class="card-description">Feel the bliss and serene of multiple environments floating around you</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+        const username = sessionStorage.getItem('username');
+
+        if (!isLoggedIn) {
+            // Redirect to login if not logged in
+            window.location.href = '../login_signup/login.html';
+        }
+
+        // AI Filter Generator
+        const aiFilterInput = document.getElementById('aiFilterInput');
+        const generateBtn = document.getElementById('generateBtn');
+
+        generateBtn.addEventListener('click', function() {
+            const filterDescription = aiFilterInput.value.trim();
+            if (filterDescription) {
+                alert('Generating AI filter: "' + filterDescription + '"\n\n(AI generation coming soon!)');
+                aiFilterInput.value = '';
+            } else {
+                alert('Please describe the filter you want to create!');
+            }
+        });
+
+        // Allow Enter key to generate
+        aiFilterInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateBtn.click();
+            }
+        });
+
+        // Filter Options Toggle
+        const defaultFiltersBtn = document.getElementById('defaultFiltersBtn');
+        const savedFiltersBtn = document.getElementById('savedFiltersBtn');
+        const filtersDisplay = document.getElementById('filtersDisplay');
+
+        const defaultFiltersHTML = `
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-icon">💄</div>
+                    <h3 class="card-title">Beauty Filters</h3>
+                    <p class="card-description">Multiple beauty filter types for enhanced apperance</p>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-icon">🎨</div>
+                    <h3 class="card-title">Miscellaneous Filters</h3>
+                    <p class="card-description">Various miscellaneous filters for unique effects</p>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-icon">👤</div>
+                    <h3 class="card-title">Avatar</h3>
+                    <p class="card-description">Bring your avatar to life with custom animations and effects</p>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-icon">🌿</div>
+                    <h3 class="card-title">Environments</h3>
+                    <p class="card-description">Feel the bliss and serene of multiple environments floating around you</p>
+                </div>
+            </div>
+        `;
+
+        const savedFiltersHTML = `
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-icon">⭐</div>
+                    <h3 class="card-title">My Custom Filter</h3>
+                    <p class="card-description">Your saved custom filter</p>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-icon">💫</div>
+                    <h3 class="card-title">Favorite Effect</h3>
+                    <p class="card-description">Your favorite saved effect</p>
+                </div>
+            </div>
+        `;
+
+        defaultFiltersBtn.addEventListener('click', function() {
+            defaultFiltersBtn.classList.add('active');
+            savedFiltersBtn.classList.remove('active');
+            filtersDisplay.innerHTML = defaultFiltersHTML;
+            attachCardHandlers();
+        });
+
+        savedFiltersBtn.addEventListener('click', function() {
+            savedFiltersBtn.classList.add('active');
+            defaultFiltersBtn.classList.remove('active');
+            filtersDisplay.innerHTML = savedFiltersHTML;
+            attachCardHandlers();
+        });
+
+        // Attach click handlers to filter cards
+        function attachCardHandlers() {
+            const dashboardCards = document.querySelectorAll('.dashboard-card');
+            dashboardCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const title = this.querySelector('.card-title').textContent;
+                    alert('Applying filter: ' + title + '\n\n(Feature coming soon!)');
+                });
+            });
+        }
+
+        // Initialize card handlers
+        attachCardHandlers();
+    </script>
+</body>
+</html>
