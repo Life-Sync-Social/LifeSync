@@ -4,6 +4,8 @@ const cors = require('cors');
 
 const HF_TOKEN = process.env.HF_TOKEN;
 const HF_MODEL = process.env.HF_CHAT_MODEL || 'HuggingFaceTB/SmolLM3-3B:hf-inference';
+// Optional: set HF_IMAGE_MODEL in .env for image generation (e.g. stabilityai/stable-diffusion-xl-base-1.0). If unset, placeholder is returned.
+const HF_IMAGE_MODEL = process.env.HF_IMAGE_MODEL || '';
 const PORT = process.env.PORT || 3001;
 
 if (!HF_TOKEN || HF_TOKEN === 'your_hugging_face_token_here') {
@@ -105,6 +107,79 @@ app.post('/api/chat', async (req, res) => {
       e.status === 429 ? 'Rate limited' :
       e.status === 503 ? 'Model loading, try again shortly' :
       'Could not get reply';
+    res.status(status).json({ error: message });
+  }
+});
+
+// Placeholder 1x1 PNG (transparent) as data URL for when image model is not configured
+const PLACEHOLDER_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+async function callHuggingFaceImage(prompt, retries = 2) {
+  const model = HF_IMAGE_MODEL || 'black-forest-labs/FLUX.1-schnell';
+  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+  console.log('[generate-image] calling', url);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${HF_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      inputs: prompt.substring(0, 1000),
+    }),
+  });
+
+  if (res.status === 503 && retries > 0) {
+    await new Promise(r => setTimeout(r, 3000));
+    return callHuggingFaceImage(prompt, retries - 1);
+  }
+
+  if (!res.ok) {
+    const errText = await res.text();
+    let errMsg = errText;
+    try {
+      const j = JSON.parse(errText);
+      errMsg = j.error || j.message || errText;
+    } catch (_) {}
+    const err = new Error(errMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  const buf = Buffer.from(await res.arrayBuffer());
+  return { imageBase64: buf.toString('base64'), mimeType: 'image/png' };
+}
+
+app.post('/api/generate-image', async (req, res) => {
+  try {
+    const { prompt } = req.body || {};
+    if (typeof prompt !== 'string' || !prompt.trim()) {
+      return res.status(400).json({ error: 'Missing or invalid "prompt"' });
+    }
+    const trimmed = prompt.trim();
+    if (trimmed.length > 2000) {
+      return res.status(400).json({ error: 'Prompt too long' });
+    }
+
+    let imageBase64;
+    let mimeType = 'image/png';
+
+    if (HF_IMAGE_MODEL) {
+      const out = await callHuggingFaceImage(trimmed);
+      imageBase64 = out.imageBase64;
+      mimeType = out.mimeType || mimeType;
+    } else {
+      imageBase64 = PLACEHOLDER_PNG_BASE64;
+    }
+
+    res.json({ imageBase64, mimeType, imageDataUrl: `data:${mimeType};base64,${imageBase64}` });
+  } catch (e) {
+    console.error('[generate-image]', e.status, e.message);
+    const status = e.status || 500;
+    const message = e.status === 401 ? 'Invalid API token' :
+      e.status === 429 ? 'Rate limited' :
+      e.status === 503 ? 'Model loading, try again shortly' :
+      'Could not generate image';
     res.status(status).json({ error: message });
   }
 });

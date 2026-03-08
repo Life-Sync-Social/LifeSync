@@ -91,6 +91,34 @@
             window.location.href = '../login_signup/login.html';
         }
 
+        // Show generated image card from Picture Generator if present
+        const filtersDisplay = document.getElementById('filtersDisplay');
+        const arGeneratedImage = sessionStorage.getItem('arGeneratedImage');
+        if (arGeneratedImage) {
+            sessionStorage.removeItem('arGeneratedImage');
+            const grid = filtersDisplay.querySelector('.dashboard-grid');
+            if (grid) {
+                const card = document.createElement('div');
+                card.className = 'dashboard-card generated-image-card';
+                const thumb = document.createElement('div');
+                thumb.className = 'card-icon generated-thumb';
+                const img = document.createElement('img');
+                img.src = arGeneratedImage;
+                img.alt = 'Generated';
+                thumb.appendChild(img);
+                const title = document.createElement('h3');
+                title.className = 'card-title';
+                title.textContent = 'Generated image';
+                const desc = document.createElement('p');
+                desc.className = 'card-description';
+                desc.textContent = 'Use your Picture Generator image as AR filter';
+                card.appendChild(thumb);
+                card.appendChild(title);
+                card.appendChild(desc);
+                grid.insertBefore(card, grid.firstChild);
+            }
+        }
+
         // AI Filter Generator
         const aiFilterInput = document.getElementById('aiFilterInput');
         const generateBtn = document.getElementById('generateBtn');
@@ -176,8 +204,12 @@
             const dashboardCards = document.querySelectorAll('.dashboard-card');
             dashboardCards.forEach(card => {
                 card.addEventListener('click', function() {
-                    const title = this.querySelector('.card-title').textContent;
-                    alert('Applying filter: ' + title + '\n\n(Feature coming soon!)');
+                    if (this.classList.contains('generated-image-card')) {
+                        alert('Applying generated filter – AR viewer coming soon!');
+                    } else {
+                        const title = this.querySelector('.card-title').textContent;
+                        alert('Applying filter: ' + title + '\n\n(Feature coming soon!)');
+                    }
                 });
             });
         }

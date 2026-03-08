@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeSync - Picture Generator</title>
+    <link rel="stylesheet" href="../base.css">
+    <link rel="stylesheet" href="picture_gen.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <button onclick="window.location.href='../home_page/index.html'" class="back-btn" title="Back to Home">
+                <span class="back-icon">←</span>
+            </button>
+            <h1>Picture Generator</h1>
+        </header>
+
+        <div class="main-content">
+            <div class="content-header">
+                <h2>Generate an image for AR</h2>
+            </div>
+
+            <div class="prompt-section">
+                <div class="prompt-row">
+                    <input
+                        type="text"
+                        id="promptInput"
+                        class="prompt-input"
+                        placeholder="Describe the image you want... (e.g., 'A cute cat with sparkles')"
+                        autocomplete="off">
+                    <button id="generateBtn" class="generate-btn">
+                        <span class="generate-icon">✨</span>
+                        <span class="generate-text">Generate</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="resultSection" class="result-section">
+                <div id="resultContent" class="result-placeholder">
+                    Enter a prompt and click Generate. Your image will appear here and you can use it in AR.
+                </div>
+                <div id="errorMsg" class="error-msg" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
