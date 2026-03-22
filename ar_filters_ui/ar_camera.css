@@ -65,8 +65,7 @@
 }
 
 .video-container.mirror video,
-.video-container.mirror #landmarkCanvas,
-.video-container.mirror #arOverlay {
+.video-container.mirror #landmarkCanvas {
     transform: scaleX(-1);
 }
 

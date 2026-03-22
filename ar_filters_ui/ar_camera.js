@@ -272,22 +272,32 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const ox = (displayW - rw) / 2;
     const oy = (displayH - rh) / 2;
 
+    // Mirror x-coordinates for selfie mode so the AR overlay
+    // moves with the face (video + landmarks are CSS-mirrored,
+    // but the AR canvas is not, so we mirror in JS instead)
+    const isMirror = facingMode === 'user';
+
     const face = landmarks[0];
     const imgW = arImage.naturalWidth || arImage.width;
     const imgH = arImage.naturalHeight || arImage.height;
 
     // Convert grid landmarks to display coordinates
-    // gridPts[row][col] = {x, y}
     const gridPts = [];
     for (let r = 0; r < GRID_ROWS; r++) {
         gridPts[r] = [];
         for (let c = 0; c < GRID_COLS; c++) {
             const pt = face[FACE_GRID[r][c]];
+            let x, y;
             if (!pt) {
-                gridPts[r][c] = { x: displayW / 2, y: displayH / 2 };
+                x = displayW / 2;
+                y = displayH / 2;
             } else {
-                gridPts[r][c] = { x: pt.x * rw + ox, y: pt.y * rh + oy };
+                x = pt.x * rw + ox;
+                y = pt.y * rh + oy;
             }
+            // Mirror x for selfie mode
+            if (isMirror) x = displayW - x;
+            gridPts[r][c] = { x, y };
         }
     }
 
@@ -303,12 +313,18 @@ function drawArOverlay(landmarks, displayW, displayH) {
             const br = gridPts[r + 1][c + 1];
 
             // Corresponding source rectangle in image space
-            const su = (c / (GRID_COLS - 1)) * imgW;
-            const sv = (r / (GRID_ROWS - 1)) * imgH;
-            const sw = (1 / (GRID_COLS - 1)) * imgW;
-            const sh = (1 / (GRID_ROWS - 1)) * imgH;
+            // When mirrored, flip the source horizontally so the
+            // image content matches the mirrored face
+            let su, sv, sw, sh;
+            if (isMirror) {
+                su = ((GRID_COLS - 2 - c) / (GRID_COLS - 1)) * imgW;
+            } else {
+                su = (c / (GRID_COLS - 1)) * imgW;
+            }
+            sv = (r / (GRID_ROWS - 1)) * imgH;
+            sw = (1 / (GRID_COLS - 1)) * imgW;
+            sh = (1 / (GRID_ROWS - 1)) * imgH;
 
-            // Draw as two triangles for better warping
             drawWarpedQuad(arCtx, arImage,
                 su, sv, sw, sh,
                 tl, tr, bl, br);
