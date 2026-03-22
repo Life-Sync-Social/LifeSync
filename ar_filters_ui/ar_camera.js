@@ -223,91 +223,70 @@ function drawLandmarkDots(landmarks, displayW, displayH) {
     }
 }
 
-// ── AR overlay: smooth grid interpolated from key anchor landmarks ──────
-// Uses 5 stable anchor points (forehead, left/right cheek, chin, nose)
-// to define the face plane, then generates a smooth NxN interpolated grid.
-// This preserves image quality by avoiding uneven hand-picked landmark grids.
+// ── AR overlay: dense 33x33 grid (1024 quads, 2048 triangles) ───────────
+// Uses anchor landmarks along the face contour + center line to define
+// the face surface, then bilinearly interpolates a dense grid for
+// high-quality warping that follows head rotation.
 
-// Key anchor landmark indices (MediaPipe canonical mesh)
-const LM_FOREHEAD  = 10;   // top of forehead center
-const LM_CHIN      = 152;  // bottom of chin center
-const LM_LEFT_EAR  = 234;  // left ear (left side of face)
-const LM_RIGHT_EAR = 454;  // right ear (right side of face)
-const LM_NOSE      = 4;    // nose tip (center of face)
-const LM_LEFT_CHEEK = 93;  // left cheekbone
-const LM_RIGHT_CHEEK = 323; // right cheekbone
-const LM_LEFT_BROW = 127;  // left brow outer
-const LM_RIGHT_BROW = 356; // right brow outer
+const GRID_N = 33;  // 33x33 points = 32x32 cells = 1024 quads = 2048 tris
 
-// Interpolate between two points
-function lerp2(a, b, t) {
-    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+// Landmarks along the left contour (top to bottom)
+const LEFT_CONTOUR = [10, 109, 67, 103, 54, 21, 162, 127, 234, 93, 132, 58, 172, 136, 150, 149, 176, 148, 152];
+// Landmarks along the right contour (top to bottom)
+const RIGHT_CONTOUR = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152];
+// Landmarks along the center line (top to bottom)
+const CENTER_LINE = [10, 151, 9, 8, 168, 6, 197, 195, 5, 4, 1, 0, 164, 18, 152];
+
+function lmPt(face, idx, rw, rh, ox, oy, displayW, isMirror) {
+    const pt = face[idx];
+    if (!pt) return null;
+    let x = pt.x * rw + ox;
+    const y = pt.y * rh + oy;
+    if (isMirror) x = displayW - x;
+    return { x, y };
 }
 
-// Build a smooth grid by interpolating between edge landmarks
-// Returns a (rows x cols) array of {x,y} points
-function buildSmoothGrid(face, rw, rh, ox, oy, displayW, isMirror, rows, cols) {
-    function lm(idx) {
-        const pt = face[idx];
-        if (!pt) return { x: displayW / 2, y: displayW / 2 };
-        let x = pt.x * rw + ox;
-        const y = pt.y * rh + oy;
-        if (isMirror) x = displayW - x;
-        return { x, y };
+// Build a polyline from landmark indices, returning array of {x, y}
+function buildPolyline(face, indices, rw, rh, ox, oy, displayW, isMirror) {
+    const pts = [];
+    for (const idx of indices) {
+        const p = lmPt(face, idx, rw, rh, ox, oy, displayW, isMirror);
+        if (p) pts.push(p);
     }
-
-    const forehead = lm(LM_FOREHEAD);
-    const chin     = lm(LM_CHIN);
-    const leftEar  = lm(LM_LEFT_EAR);
-    const rightEar = lm(LM_RIGHT_EAR);
-    const leftBrow = lm(LM_LEFT_BROW);
-    const rightBrow = lm(LM_RIGHT_BROW);
-    const leftCheek = lm(LM_LEFT_CHEEK);
-    const rightCheek = lm(LM_RIGHT_CHEEK);
-
-    // Build left edge (forehead-left → left brow → left cheek → chin-left)
-    // Build right edge similarly
-    // Then interpolate horizontally between left and right for each row
-
-    const grid = [];
-    for (let r = 0; r < rows; r++) {
-        grid[r] = [];
-        const t = r / (rows - 1); // 0 at top, 1 at bottom
-
-        // Left edge point at this row height
-        let leftPt;
-        if (t < 0.3) {
-            leftPt = lerp2(leftBrow, leftEar, t / 0.3 * 0.5);
-            leftPt = lerp2(forehead, leftPt, t / 0.3);
-        } else if (t < 0.7) {
-            leftPt = lerp2(leftEar, leftCheek, (t - 0.3) / 0.4);
-        } else {
-            leftPt = lerp2(leftCheek, chin, (t - 0.7) / 0.3);
-        }
-
-        // Right edge point at this row height
-        let rightPt;
-        if (t < 0.3) {
-            rightPt = lerp2(rightBrow, rightEar, t / 0.3 * 0.5);
-            rightPt = lerp2(forehead, rightPt, t / 0.3);
-        } else if (t < 0.7) {
-            rightPt = lerp2(rightEar, rightCheek, (t - 0.3) / 0.4);
-        } else {
-            rightPt = lerp2(rightCheek, chin, (t - 0.7) / 0.3);
-        }
-
-        // Interpolate columns between left and right
-        for (let c = 0; c < cols; c++) {
-            const s = c / (cols - 1);
-            grid[r][c] = lerp2(leftPt, rightPt, s);
-        }
-    }
-
-    return grid;
+    return pts;
 }
 
-const GRID_ROWS = 5;
-const GRID_COLS = 5;
+// Sample a polyline at parameter t (0..1) using arc-length interpolation
+function samplePolyline(pts, t) {
+    if (pts.length === 0) return { x: 0, y: 0 };
+    if (pts.length === 1 || t <= 0) return pts[0];
+    if (t >= 1) return pts[pts.length - 1];
+
+    // Compute cumulative arc lengths
+    const lens = [0];
+    for (let i = 1; i < pts.length; i++) {
+        const dx = pts[i].x - pts[i-1].x;
+        const dy = pts[i].y - pts[i-1].y;
+        lens.push(lens[i-1] + Math.sqrt(dx*dx + dy*dy));
+    }
+    const totalLen = lens[lens.length - 1];
+    if (totalLen < 0.001) return pts[0];
+
+    const targetLen = t * totalLen;
+
+    // Find the segment containing targetLen
+    for (let i = 1; i < lens.length; i++) {
+        if (lens[i] >= targetLen) {
+            const segLen = lens[i] - lens[i-1];
+            const localT = segLen > 0.001 ? (targetLen - lens[i-1]) / segLen : 0;
+            return {
+                x: pts[i-1].x + (pts[i].x - pts[i-1].x) * localT,
+                y: pts[i-1].y + (pts[i].y - pts[i-1].y) * localT,
+            };
+        }
+    }
+    return pts[pts.length - 1];
+}
 
 function drawArOverlay(landmarks, displayW, displayH) {
     arCtx.clearRect(0, 0, displayW, displayH);
@@ -328,22 +307,55 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const imgW = arImage.naturalWidth || arImage.width;
     const imgH = arImage.naturalHeight || arImage.height;
 
-    const gridPts = buildSmoothGrid(face, rw, rh, ox, oy, displayW, isMirror, GRID_ROWS, GRID_COLS);
+    // Build the three guide polylines from real landmarks
+    const leftPoly   = buildPolyline(face, LEFT_CONTOUR,  rw, rh, ox, oy, displayW, isMirror);
+    const rightPoly  = buildPolyline(face, RIGHT_CONTOUR, rw, rh, ox, oy, displayW, isMirror);
+    const centerPoly = buildPolyline(face, CENTER_LINE,   rw, rh, ox, oy, displayW, isMirror);
 
-    arCtx.globalAlpha = 0.82;
+    if (leftPoly.length < 2 || rightPoly.length < 2 || centerPoly.length < 2) return;
 
-    for (let r = 0; r < GRID_ROWS - 1; r++) {
-        for (let c = 0; c < GRID_COLS - 1; c++) {
-            const tl = gridPts[r][c];
-            const tr = gridPts[r][c + 1];
-            const bl = gridPts[r + 1][c];
-            const br = gridPts[r + 1][c + 1];
+    // Generate the dense grid by interpolating between left, center, and right
+    const grid = [];
+    for (let r = 0; r < GRID_N; r++) {
+        grid[r] = [];
+        const t = r / (GRID_N - 1);  // vertical parameter 0..1
 
-            // Source rect in image space
-            const su = (c / (GRID_COLS - 1)) * imgW;
-            const sv = (r / (GRID_ROWS - 1)) * imgH;
-            const sw = (1 / (GRID_COLS - 1)) * imgW;
-            const sh = (1 / (GRID_ROWS - 1)) * imgH;
+        const lp = samplePolyline(leftPoly, t);
+        const cp = samplePolyline(centerPoly, t);
+        const rp = samplePolyline(rightPoly, t);
+
+        for (let c = 0; c < GRID_N; c++) {
+            const s = c / (GRID_N - 1);  // horizontal parameter 0..1
+
+            // Piecewise interpolation: left→center for s<0.5, center→right for s>=0.5
+            let x, y;
+            if (s <= 0.5) {
+                const u = s / 0.5;
+                x = lp.x + (cp.x - lp.x) * u;
+                y = lp.y + (cp.y - lp.y) * u;
+            } else {
+                const u = (s - 0.5) / 0.5;
+                x = cp.x + (rp.x - cp.x) * u;
+                y = cp.y + (rp.y - cp.y) * u;
+            }
+            grid[r][c] = { x, y };
+        }
+    }
+
+    arCtx.globalAlpha = 0.85;
+
+    // Draw 1024 quads (2048 triangles)
+    for (let r = 0; r < GRID_N - 1; r++) {
+        for (let c = 0; c < GRID_N - 1; c++) {
+            const tl = grid[r][c];
+            const tr = grid[r][c + 1];
+            const bl = grid[r + 1][c];
+            const br = grid[r + 1][c + 1];
+
+            const su = (c / (GRID_N - 1)) * imgW;
+            const sv = (r / (GRID_N - 1)) * imgH;
+            const sw = (1 / (GRID_N - 1)) * imgW;
+            const sh = (1 / (GRID_N - 1)) * imgH;
 
             drawWarpedQuad(arCtx, arImage,
                 su, sv, sw, sh,
