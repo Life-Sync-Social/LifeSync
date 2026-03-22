@@ -223,27 +223,43 @@ function drawLandmarkDots(landmarks, displayW, displayH) {
     }
 }
 
-// ── AR overlay: landmark-anchored grid with per-vertex UV from face bbox ─
-// Uses a grid of real face landmarks. Each vertex's UV coordinate is
-// computed from its position within the face bounding box, so irregular
-// landmark spacing doesn't distort the image.
+// ── AR overlay: landmark-anchored grid with expanded coverage ────────────
+// Uses a grid of real face landmarks with outer points pushed outward
+// from the face center to ensure full face coverage. Each vertex's UV
+// is computed from position within an expanded bounding box.
 
-// 7 columns x 9 rows grid of landmark indices
-// Arranged left-to-right, top-to-bottom on the face
+// 9 columns x 11 rows grid of landmark indices
+// Outer ring uses face silhouette landmarks pushed further out
 const FACE_GRID = [
-    [251, 332, 297,  10,  67, 103,  21],   // forehead top
-    [389, 284, 338, 151, 109,  54, 162],   // forehead
-    [356, 368, 336,   9, 107, 139, 127],   // upper forehead
-    [454, 353, 276, 168,  46, 124, 234],   // brow line
-    [323, 346, 280,   6,  50, 117,  93],   // eyes / nose
-    [361, 352, 359,   4, 130, 123, 132],   // cheeks / nose
-    [288, 411, 287,   1,  57, 187,  58],   // mouth
-    [397, 425, 307,   0,  78, 205, 172],   // lower mouth
-    [365, 378, 400, 152, 176, 149, 136],   // chin
+    // row 0: above forehead (expanded)
+    [251, 332, 297,  10,  67, 103,  21, 103,  21],
+    // row 1: forehead top
+    [251, 332, 297,  10,  67, 103,  21, 103,  21],
+    // row 2: forehead
+    [389, 284, 338, 151, 109,  54, 162,  54, 162],
+    // row 3: upper forehead
+    [356, 368, 336,   9, 107, 139, 127, 139, 127],
+    // row 4: brow line
+    [454, 353, 276, 168,  46, 124, 234, 124, 234],
+    // row 5: eyes / nose
+    [323, 346, 280,   6,  50, 117,  93, 117,  93],
+    // row 6: cheeks / nose
+    [361, 352, 359,   4, 130, 123, 132, 123, 132],
+    // row 7: mouth
+    [288, 411, 287,   1,  57, 187,  58, 187,  58],
+    // row 8: lower mouth
+    [397, 425, 307,   0,  78, 205, 172, 205, 172],
+    // row 9: chin
+    [365, 378, 400, 152, 176, 149, 136, 149, 136],
+    // row 10: below chin (expanded)
+    [365, 378, 400, 152, 176, 149, 136, 149, 136],
 ];
 
 const G_ROWS = FACE_GRID.length;
 const G_COLS = FACE_GRID[0].length;
+
+// How much to expand the outer boundary beyond the landmark positions
+const EXPAND = 0.25;  // 25% expansion
 
 function drawArOverlay(landmarks, displayW, displayH) {
     arCtx.clearRect(0, 0, displayW, displayH);
@@ -265,11 +281,9 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const imgH = arImage.naturalHeight || arImage.height;
 
     // Convert all grid landmarks to display coords
-    const pts = [];  // pts[r][c] = {x, y}
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-
+    const rawPts = [];
     for (let r = 0; r < G_ROWS; r++) {
-        pts[r] = [];
+        rawPts[r] = [];
         for (let c = 0; c < G_COLS; c++) {
             const lm = face[FACE_GRID[r][c]];
             let x, y;
@@ -280,26 +294,63 @@ function drawArOverlay(landmarks, displayW, displayH) {
                 y = lm.y * rh + oy;
             }
             if (isMirror) x = displayW - x;
-            pts[r][c] = { x, y };
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
+            rawPts[r][c] = { x, y };
         }
     }
 
+    // Find face center from all points
+    let sumX = 0, sumY = 0, cnt = 0;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (let r = 0; r < G_ROWS; r++) {
+        for (let c = 0; c < G_COLS; c++) {
+            const p = rawPts[r][c];
+            sumX += p.x; sumY += p.y; cnt++;
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+        }
+    }
+    const cx = sumX / cnt;
+    const cy = sumY / cnt;
     const bw = maxX - minX || 1;
     const bh = maxY - minY || 1;
 
-    // Compute UV for each vertex based on its position in the face bbox
-    // This ensures the image maps naturally to each landmark's actual position
-    const uvs = [];  // uvs[r][c] = {u, v} in image pixel coords
+    // Push all points outward from center by EXPAND factor
+    // This expands coverage beyond the landmark positions
+    const pts = [];
+    for (let r = 0; r < G_ROWS; r++) {
+        pts[r] = [];
+        for (let c = 0; c < G_COLS; c++) {
+            const p = rawPts[r][c];
+            pts[r][c] = {
+                x: cx + (p.x - cx) * (1 + EXPAND),
+                y: cy + (p.y - cy) * (1 + EXPAND),
+            };
+        }
+    }
+
+    // Recompute expanded bbox
+    let eMinX = Infinity, eMaxX = -Infinity, eMinY = Infinity, eMaxY = -Infinity;
+    for (let r = 0; r < G_ROWS; r++) {
+        for (let c = 0; c < G_COLS; c++) {
+            const p = pts[r][c];
+            if (p.x < eMinX) eMinX = p.x;
+            if (p.x > eMaxX) eMaxX = p.x;
+            if (p.y < eMinY) eMinY = p.y;
+            if (p.y > eMaxY) eMaxY = p.y;
+        }
+    }
+    const ebw = eMaxX - eMinX || 1;
+    const ebh = eMaxY - eMinY || 1;
+
+    // Compute UV for each vertex based on position in expanded bbox
+    const uvs = [];
     for (let r = 0; r < G_ROWS; r++) {
         uvs[r] = [];
         for (let c = 0; c < G_COLS; c++) {
-            let u = (pts[r][c].x - minX) / bw;  // 0..1
-            const v = (pts[r][c].y - minY) / bh;
-            // In mirror mode, flip UV horizontally so image isn't reversed
+            let u = (pts[r][c].x - eMinX) / ebw;
+            const v = (pts[r][c].y - eMinY) / ebh;
             if (isMirror) u = 1 - u;
             uvs[r][c] = { u: u * imgW, v: v * imgH };
         }
@@ -307,23 +358,18 @@ function drawArOverlay(landmarks, displayW, displayH) {
 
     arCtx.globalAlpha = 0.85;
 
-    // Draw each quad as 2 triangles
     for (let r = 0; r < G_ROWS - 1; r++) {
         for (let c = 0; c < G_COLS - 1; c++) {
-            // Destination quad corners
             const d00 = pts[r][c],     d10 = pts[r][c+1];
             const d01 = pts[r+1][c],   d11 = pts[r+1][c+1];
-            // Source UV corners
             const s00 = uvs[r][c],     s10 = uvs[r][c+1];
             const s01 = uvs[r+1][c],   s11 = uvs[r+1][c+1];
 
-            // Triangle 1: top-left, top-right, bottom-left
             drawTri(arCtx, arImage,
                 s00.u, s00.v, d00.x, d00.y,
                 s10.u, s10.v, d10.x, d10.y,
                 s01.u, s01.v, d01.x, d01.y);
 
-            // Triangle 2: top-right, bottom-right, bottom-left
             drawTri(arCtx, arImage,
                 s10.u, s10.v, d10.x, d10.y,
                 s11.u, s11.v, d11.x, d11.y,
