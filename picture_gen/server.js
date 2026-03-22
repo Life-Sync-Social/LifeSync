@@ -212,18 +212,46 @@ app.post('/api/generate-image', async (req, res) => {
 });
 
 const HOST = config.HOST || process.env.HOST || '0.0.0.0';
+const HTTPS_PORT = Number(config.HTTPS_PORT || process.env.HTTPS_PORT || PORT);
 
+// ── Start HTTPS server (needed for iPad/Pages mixed-content) ────────────
+const certPath = path.join(__dirname, 'server.cert');
+const keyPath  = path.join(__dirname, 'server.key');
+
+if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+  const https = require('https');
+  const sslOpts = {
+    cert: fs.readFileSync(certPath),
+    key:  fs.readFileSync(keyPath),
+  };
+  const httpsPort = HTTPS_PORT === PORT ? PORT + 1 : HTTPS_PORT;
+  https.createServer(sslOpts, app).listen(httpsPort, HOST, () => {
+    console.log(`HTTPS server listening on https://${HOST}:${httpsPort}`);
+    if (HOST === '0.0.0.0') {
+      const os = require('os');
+      const nets = os.networkInterfaces();
+      for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+          if (net.family === 'IPv4' && !net.internal) {
+            console.log(`  LAN (HTTPS): https://${net.address}:${httpsPort}`);
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Start HTTP server ───────────────────────────────────────────────────
 app.listen(PORT, HOST, () => {
-  console.log(`Picture Generator listening on http://${HOST}:${PORT}`);
+  console.log(`HTTP server listening on http://${HOST}:${PORT}`);
   console.log(`Open http://localhost:${PORT}/index.html to use the app`);
-  // Show LAN addresses for iPad / mobile testing
   if (HOST === '0.0.0.0') {
     const os = require('os');
     const nets = os.networkInterfaces();
     for (const name of Object.keys(nets)) {
       for (const net of nets[name]) {
         if (net.family === 'IPv4' && !net.internal) {
-          console.log(`  LAN: http://${net.address}:${PORT}`);
+          console.log(`  LAN (HTTP): http://${net.address}:${PORT}`);
         }
       }
     }
