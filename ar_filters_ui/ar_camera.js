@@ -223,41 +223,92 @@ function drawLandmarkDots(landmarks, displayW, displayH) {
     }
 }
 
-// ── Face landmark grid for AR overlay ────────────────────────────────────
-// A grid of landmark indices arranged in rows from top to bottom, left to
-// right.  When the head rotates, these points move with the face surface,
-// so the image warps to follow the 3D facial geometry.
-//
-// Grid layout (approx 7 columns x 9 rows):
-//   Row 0: forehead top
-//   Row 1: forehead mid
-//   Row 2: brow line
-//   Row 3: eye line
-//   Row 4: cheek / nose
-//   Row 5: mouth line
-//   Row 6: lower lip
-//   Row 7: chin area
-//   Row 8: chin bottom
-const FACE_GRID = [
-    // Each row: [far-left, left, inner-left, center, inner-right, right, far-right]
-    [251, 332, 297, 10, 67, 103, 21],       // row 0: forehead top
-    [389, 284, 338, 151, 109, 54, 162],      // row 1: forehead
-    [356, 368, 336, 9, 107, 139, 127],       // row 2: upper forehead
-    [454, 353, 276, 168, 46, 124, 234],      // row 3: brow
-    [323, 346, 280, 6, 50, 117, 93],         // row 4: eyes/nose bridge
-    [361, 352, 359, 4, 130, 123, 132],       // row 5: cheeks/nose
-    [288, 411, 287, 1, 57, 187, 58],         // row 6: mouth
-    [397, 425, 307, 0, 78, 205, 172],        // row 7: lower mouth
-    [365, 378, 400, 152, 176, 149, 136],     // row 8: chin
-];
+// ── AR overlay: smooth grid interpolated from key anchor landmarks ──────
+// Uses 5 stable anchor points (forehead, left/right cheek, chin, nose)
+// to define the face plane, then generates a smooth NxN interpolated grid.
+// This preserves image quality by avoiding uneven hand-picked landmark grids.
 
-const GRID_ROWS = FACE_GRID.length;
-const GRID_COLS = FACE_GRID[0].length;
+// Key anchor landmark indices (MediaPipe canonical mesh)
+const LM_FOREHEAD  = 10;   // top of forehead center
+const LM_CHIN      = 152;  // bottom of chin center
+const LM_LEFT_EAR  = 234;  // left ear (left side of face)
+const LM_RIGHT_EAR = 454;  // right ear (right side of face)
+const LM_NOSE      = 4;    // nose tip (center of face)
+const LM_LEFT_CHEEK = 93;  // left cheekbone
+const LM_RIGHT_CHEEK = 323; // right cheekbone
+const LM_LEFT_BROW = 127;  // left brow outer
+const LM_RIGHT_BROW = 356; // right brow outer
 
-// ── Draw AR overlay on face ─────────────────────────────────────────────
-// For each cell in the grid, we draw the corresponding portion of the AR
-// image warped to the quadrilateral formed by 4 landmark corners. This
-// makes the image follow the face when turning left/right/up/down.
+// Interpolate between two points
+function lerp2(a, b, t) {
+    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+// Build a smooth grid by interpolating between edge landmarks
+// Returns a (rows x cols) array of {x,y} points
+function buildSmoothGrid(face, rw, rh, ox, oy, displayW, isMirror, rows, cols) {
+    function lm(idx) {
+        const pt = face[idx];
+        if (!pt) return { x: displayW / 2, y: displayW / 2 };
+        let x = pt.x * rw + ox;
+        const y = pt.y * rh + oy;
+        if (isMirror) x = displayW - x;
+        return { x, y };
+    }
+
+    const forehead = lm(LM_FOREHEAD);
+    const chin     = lm(LM_CHIN);
+    const leftEar  = lm(LM_LEFT_EAR);
+    const rightEar = lm(LM_RIGHT_EAR);
+    const leftBrow = lm(LM_LEFT_BROW);
+    const rightBrow = lm(LM_RIGHT_BROW);
+    const leftCheek = lm(LM_LEFT_CHEEK);
+    const rightCheek = lm(LM_RIGHT_CHEEK);
+
+    // Build left edge (forehead-left → left brow → left cheek → chin-left)
+    // Build right edge similarly
+    // Then interpolate horizontally between left and right for each row
+
+    const grid = [];
+    for (let r = 0; r < rows; r++) {
+        grid[r] = [];
+        const t = r / (rows - 1); // 0 at top, 1 at bottom
+
+        // Left edge point at this row height
+        let leftPt;
+        if (t < 0.3) {
+            leftPt = lerp2(leftBrow, leftEar, t / 0.3 * 0.5);
+            leftPt = lerp2(forehead, leftPt, t / 0.3);
+        } else if (t < 0.7) {
+            leftPt = lerp2(leftEar, leftCheek, (t - 0.3) / 0.4);
+        } else {
+            leftPt = lerp2(leftCheek, chin, (t - 0.7) / 0.3);
+        }
+
+        // Right edge point at this row height
+        let rightPt;
+        if (t < 0.3) {
+            rightPt = lerp2(rightBrow, rightEar, t / 0.3 * 0.5);
+            rightPt = lerp2(forehead, rightPt, t / 0.3);
+        } else if (t < 0.7) {
+            rightPt = lerp2(rightEar, rightCheek, (t - 0.3) / 0.4);
+        } else {
+            rightPt = lerp2(rightCheek, chin, (t - 0.7) / 0.3);
+        }
+
+        // Interpolate columns between left and right
+        for (let c = 0; c < cols; c++) {
+            const s = c / (cols - 1);
+            grid[r][c] = lerp2(leftPt, rightPt, s);
+        }
+    }
+
+    return grid;
+}
+
+const GRID_ROWS = 5;
+const GRID_COLS = 5;
+
 function drawArOverlay(landmarks, displayW, displayH) {
     arCtx.clearRect(0, 0, displayW, displayH);
     if (!arImage || !landmarks.length) return;
@@ -272,58 +323,27 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const ox = (displayW - rw) / 2;
     const oy = (displayH - rh) / 2;
 
-    // Mirror x-coordinates for selfie mode so the AR overlay
-    // moves with the face (video + landmarks are CSS-mirrored,
-    // but the AR canvas is not, so we mirror in JS instead)
     const isMirror = facingMode === 'user';
-
     const face = landmarks[0];
     const imgW = arImage.naturalWidth || arImage.width;
     const imgH = arImage.naturalHeight || arImage.height;
 
-    // Convert grid landmarks to display coordinates
-    const gridPts = [];
-    for (let r = 0; r < GRID_ROWS; r++) {
-        gridPts[r] = [];
-        for (let c = 0; c < GRID_COLS; c++) {
-            const pt = face[FACE_GRID[r][c]];
-            let x, y;
-            if (!pt) {
-                x = displayW / 2;
-                y = displayH / 2;
-            } else {
-                x = pt.x * rw + ox;
-                y = pt.y * rh + oy;
-            }
-            // Mirror x for selfie mode
-            if (isMirror) x = displayW - x;
-            gridPts[r][c] = { x, y };
-        }
-    }
+    const gridPts = buildSmoothGrid(face, rw, rh, ox, oy, displayW, isMirror, GRID_ROWS, GRID_COLS);
 
-    arCtx.globalAlpha = 0.8;
+    arCtx.globalAlpha = 0.82;
 
-    // Draw each grid cell as a textured quadrilateral
     for (let r = 0; r < GRID_ROWS - 1; r++) {
         for (let c = 0; c < GRID_COLS - 1; c++) {
-            // Four corners of this cell in display space
             const tl = gridPts[r][c];
             const tr = gridPts[r][c + 1];
             const bl = gridPts[r + 1][c];
             const br = gridPts[r + 1][c + 1];
 
-            // Corresponding source rectangle in image space
-            // When mirrored, flip the source horizontally so the
-            // image content matches the mirrored face
-            let su, sv, sw, sh;
-            if (isMirror) {
-                su = ((GRID_COLS - 2 - c) / (GRID_COLS - 1)) * imgW;
-            } else {
-                su = (c / (GRID_COLS - 1)) * imgW;
-            }
-            sv = (r / (GRID_ROWS - 1)) * imgH;
-            sw = (1 / (GRID_COLS - 1)) * imgW;
-            sh = (1 / (GRID_ROWS - 1)) * imgH;
+            // Source rect in image space
+            const su = (c / (GRID_COLS - 1)) * imgW;
+            const sv = (r / (GRID_ROWS - 1)) * imgH;
+            const sw = (1 / (GRID_COLS - 1)) * imgW;
+            const sh = (1 / (GRID_ROWS - 1)) * imgH;
 
             drawWarpedQuad(arCtx, arImage,
                 su, sv, sw, sh,
