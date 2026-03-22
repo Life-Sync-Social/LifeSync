@@ -223,24 +223,41 @@ function drawLandmarkDots(landmarks, displayW, displayH) {
     }
 }
 
-// ── Face oval silhouette indices (MediaPipe canonical mesh) ─────────────
-const FACE_OVAL = [
-    10, 338, 297, 332, 284, 251, 389, 356, 454, 323,
-    361, 288, 397, 365, 379, 378, 400, 377, 152, 148,
-    176, 149, 150, 136, 172, 58, 132, 93, 234, 127,
-    162, 21, 54, 103, 67, 109
+// ── Face landmark grid for AR overlay ────────────────────────────────────
+// A grid of landmark indices arranged in rows from top to bottom, left to
+// right.  When the head rotates, these points move with the face surface,
+// so the image warps to follow the 3D facial geometry.
+//
+// Grid layout (approx 7 columns x 9 rows):
+//   Row 0: forehead top
+//   Row 1: forehead mid
+//   Row 2: brow line
+//   Row 3: eye line
+//   Row 4: cheek / nose
+//   Row 5: mouth line
+//   Row 6: lower lip
+//   Row 7: chin area
+//   Row 8: chin bottom
+const FACE_GRID = [
+    // Each row: [far-left, left, inner-left, center, inner-right, right, far-right]
+    [251, 332, 297, 10, 67, 103, 21],       // row 0: forehead top
+    [389, 284, 338, 151, 109, 54, 162],      // row 1: forehead
+    [356, 368, 336, 9, 107, 139, 127],       // row 2: upper forehead
+    [454, 353, 276, 168, 46, 124, 234],      // row 3: brow
+    [323, 346, 280, 6, 50, 117, 93],         // row 4: eyes/nose bridge
+    [361, 352, 359, 4, 130, 123, 132],       // row 5: cheeks/nose
+    [288, 411, 287, 1, 57, 187, 58],         // row 6: mouth
+    [397, 425, 307, 0, 78, 205, 172],        // row 7: lower mouth
+    [365, 378, 400, 152, 176, 149, 136],     // row 8: chin
 ];
 
-// Interior points for denser mesh
-const INTERIOR = [
-    151, 9, 8, 168, 6, 197, 195, 5, 4, 1, 0, 164,
-    57, 287, 130, 359, 50, 280, 117, 346, 123, 352,
-    187, 411, 205, 425,
-];
-
-const ALL_IDX = [...FACE_OVAL, ...INTERIOR];
+const GRID_ROWS = FACE_GRID.length;
+const GRID_COLS = FACE_GRID[0].length;
 
 // ── Draw AR overlay on face ─────────────────────────────────────────────
+// For each cell in the grid, we draw the corresponding portion of the AR
+// image warped to the quadrilateral formed by 4 landmark corners. This
+// makes the image follow the face when turning left/right/up/down.
 function drawArOverlay(landmarks, displayW, displayH) {
     arCtx.clearRect(0, 0, displayW, displayH);
     if (!arImage || !landmarks.length) return;
@@ -249,69 +266,102 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const vh = videoEl.videoHeight;
     if (!vw || !vh) return;
 
-    // object-fit: cover mapping
-    const scale = Math.max(displayW / vw, displayH / vh);
-    const rw = vw * scale;
-    const rh = vh * scale;
+    const vscale = Math.max(displayW / vw, displayH / vh);
+    const rw = vw * vscale;
+    const rh = vh * vscale;
     const ox = (displayW - rw) / 2;
     const oy = (displayH - rh) / 2;
 
     const face = landmarks[0];
+    const imgW = arImage.naturalWidth || arImage.width;
+    const imgH = arImage.naturalHeight || arImage.height;
 
-    // Convert face oval landmarks to display coordinates
-    const ovalPts = [];
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const idx of FACE_OVAL) {
-        const pt = face[idx];
-        if (!pt) continue;
-        const x = pt.x * rw + ox;
-        const y = pt.y * rh + oy;
-        ovalPts.push({ x, y });
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+    // Convert grid landmarks to display coordinates
+    // gridPts[row][col] = {x, y}
+    const gridPts = [];
+    for (let r = 0; r < GRID_ROWS; r++) {
+        gridPts[r] = [];
+        for (let c = 0; c < GRID_COLS; c++) {
+            const pt = face[FACE_GRID[r][c]];
+            if (!pt) {
+                gridPts[r][c] = { x: displayW / 2, y: displayH / 2 };
+            } else {
+                gridPts[r][c] = { x: pt.x * rw + ox, y: pt.y * rh + oy };
+            }
+        }
     }
 
-    if (ovalPts.length < 3) return;
-
-    const faceW = maxX - minX;
-    const faceH = maxY - minY;
-    if (faceW < 5 || faceH < 5) return;
-
-    // Face center
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-
-    // Expand the clip path outward from center by 35% so that head
-    // rotation doesn't expose skin at the edges.  Since the AR image
-    // has a transparent background, the extra area is invisible.
-    const expandFactor = 1.35;
-
-    arCtx.save();
     arCtx.globalAlpha = 0.8;
 
-    // Build expanded clip path
-    arCtx.beginPath();
-    for (let i = 0; i <= ovalPts.length; i++) {
-        const pt = ovalPts[i % ovalPts.length];
-        const ex = cx + (pt.x - cx) * expandFactor;
-        const ey = cy + (pt.y - cy) * expandFactor;
-        if (i === 0) arCtx.moveTo(ex, ey);
-        else arCtx.lineTo(ex, ey);
+    // Draw each grid cell as a textured quadrilateral
+    for (let r = 0; r < GRID_ROWS - 1; r++) {
+        for (let c = 0; c < GRID_COLS - 1; c++) {
+            // Four corners of this cell in display space
+            const tl = gridPts[r][c];
+            const tr = gridPts[r][c + 1];
+            const bl = gridPts[r + 1][c];
+            const br = gridPts[r + 1][c + 1];
+
+            // Corresponding source rectangle in image space
+            const su = (c / (GRID_COLS - 1)) * imgW;
+            const sv = (r / (GRID_ROWS - 1)) * imgH;
+            const sw = (1 / (GRID_COLS - 1)) * imgW;
+            const sh = (1 / (GRID_ROWS - 1)) * imgH;
+
+            // Draw as two triangles for better warping
+            drawWarpedQuad(arCtx, arImage,
+                su, sv, sw, sh,
+                tl, tr, bl, br);
+        }
     }
-    arCtx.closePath();
-    arCtx.clip();
 
-    // Draw the AR image to a larger region (30% padding each side)
-    // so when the head turns there's image content to show
-    const padX = faceW * 0.30;
-    const padY = faceH * 0.20;
-    arCtx.drawImage(arImage,
-        minX - padX, minY - padY,
-        faceW + padX * 2, faceH + padY * 2);
+    arCtx.globalAlpha = 1.0;
+}
 
-    arCtx.restore();
+// Draw a source rectangle from the image warped into a destination quad
+// by splitting into two triangles.
+function drawWarpedQuad(ctx, img, su, sv, sw, sh, tl, tr, bl, br) {
+    // Triangle 1: tl, tr, bl
+    drawTriangle(ctx, img,
+        su, sv,          tl.x, tl.y,
+        su + sw, sv,     tr.x, tr.y,
+        su, sv + sh,     bl.x, bl.y);
+
+    // Triangle 2: tr, br, bl
+    drawTriangle(ctx, img,
+        su + sw, sv,     tr.x, tr.y,
+        su + sw, sv + sh, br.x, br.y,
+        su, sv + sh,     bl.x, bl.y);
+}
+
+// Draw one triangle of the source image mapped to a destination triangle
+// using an affine transform.
+function drawTriangle(ctx, img,
+    sx0, sy0, dx0, dy0,
+    sx1, sy1, dx1, dy1,
+    sx2, sy2, dx2, dy2
+) {
+    const denom = sx0 * (sy1 - sy2) + sx1 * (sy2 - sy0) + sx2 * (sy0 - sy1);
+    if (Math.abs(denom) < 0.5) return;
+    const id = 1 / denom;
+
+    const a = (dx0 * (sy1 - sy2) + dx1 * (sy2 - sy0) + dx2 * (sy0 - sy1)) * id;
+    const b = (dx0 * (sx2 - sx1) + dx1 * (sx0 - sx2) + dx2 * (sx1 - sx0)) * id;
+    const cc = (dx0 * (sx1*sy2 - sx2*sy1) + dx1 * (sx2*sy0 - sx0*sy2) + dx2 * (sx0*sy1 - sx1*sy0)) * id;
+    const d = (dy0 * (sy1 - sy2) + dy1 * (sy2 - sy0) + dy2 * (sy0 - sy1)) * id;
+    const e = (dy0 * (sx2 - sx1) + dy1 * (sx0 - sx2) + dy2 * (sx1 - sx0)) * id;
+    const f = (dy0 * (sx1*sy2 - sx2*sy1) + dy1 * (sx2*sy0 - sx0*sy2) + dy2 * (sx0*sy1 - sx1*sy0)) * id;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(dx0, dy0);
+    ctx.lineTo(dx1, dy1);
+    ctx.lineTo(dx2, dy2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.setTransform(a, d, b, e, cc, f);
+    ctx.drawImage(img, 0, 0);
+    ctx.restore();
 }
 
 // ── Detection loop ──────────────────────────────────────────────────────
