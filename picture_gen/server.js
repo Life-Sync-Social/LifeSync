@@ -172,7 +172,7 @@ async function callHuggingFaceImage(prompt, retries = 2) {
 }
 
 // AR prompt prefix: instructs the model to generate face-filter/overlay images
-const AR_PROMPT_PREFIX = 'AR face filter design, face mask overlay, centered on face, symmetrical, designed to be worn as a face overlay filter, digital art, clean edges, vibrant colors, ';
+const AR_PROMPT_PREFIX = 'Face mask design on solid black background, isolated face mask with no background scenery, face paint style, front-facing symmetrical mask filling the frame, no person wearing it, just the mask floating on pure black, vibrant colors, clean edges, digital art, ';
 
 app.post('/api/generate-image', async (req, res) => {
   try {
