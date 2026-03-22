@@ -171,9 +171,12 @@ async function callHuggingFaceImage(prompt, retries = 2) {
   return { imageBase64: buf.toString('base64'), mimeType: 'image/png' };
 }
 
+// AR prompt prefix: instructs the model to generate face-filter/overlay images
+const AR_PROMPT_PREFIX = 'AR face filter design, face mask overlay, centered on face, symmetrical, designed to be worn as a face overlay filter, digital art, clean edges, vibrant colors, ';
+
 app.post('/api/generate-image', async (req, res) => {
   try {
-    const { prompt } = req.body || {};
+    const { prompt, mode } = req.body || {};
     if (typeof prompt !== 'string' || !prompt.trim()) {
       return res.status(400).json({ error: 'Missing or invalid "prompt"' });
     }
@@ -182,11 +185,14 @@ app.post('/api/generate-image', async (req, res) => {
       return res.status(400).json({ error: 'Prompt too long' });
     }
 
+    // Build the final prompt: always AR-optimised
+    const arPrompt = AR_PROMPT_PREFIX + trimmed;
+
     let imageBase64;
     let mimeType = 'image/png';
 
     if (HF_IMAGE_MODEL) {
-      const out = await callHuggingFaceImage(trimmed);
+      const out = await callHuggingFaceImage(arPrompt);
       imageBase64 = out.imageBase64;
       mimeType = out.mimeType || mimeType;
     } else {

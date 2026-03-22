@@ -13,12 +13,12 @@
             <button onclick="window.location.href='../home_page/index.html'" class="back-btn" title="Back to Home">
                 <span class="back-icon">←</span>
             </button>
-            <h1>Picture Generator</h1>
+            <h1>AR Filter Generator</h1>
         </header>
 
         <div class="main-content">
             <div class="content-header">
-                <h2>Generate an image for AR</h2>
+                <h2>Generate an AR Face Filter</h2>
             </div>
 
             <div id="serverBar" class="server-bar" style="display:none;">
@@ -36,7 +36,7 @@
                         type="text"
                         id="promptInput"
                         class="prompt-input"
-                        placeholder="Describe the image you want...  'Be Specific'
+                        placeholder="Describe your AR face filter... e.g. 'tiger face paint with glowing eyes'"
                         autocomplete="off">
                     <button id="generateBtn" class="generate-btn">
                         <span class="generate-icon">✨</span>
@@ -47,7 +47,7 @@
 
             <div id="resultSection" class="result-section">
                 <div id="resultContent" class="result-placeholder">
-                    Enter a prompt and click Generate. Your image will appear here and you can use it in AR.
+                    Describe your AR filter and click Generate. The AI will create a face overlay image you can apply with the AR camera.
                 </div>
                 <div id="errorMsg" class="error-msg" style="display: none;"></div>
             </div>

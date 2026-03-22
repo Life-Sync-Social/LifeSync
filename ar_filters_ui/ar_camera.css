@@ -190,7 +190,7 @@
 
 .ar-source-preview {
     border-radius: 16px;
-    overflow: hidden;
+    overflow: visible;
     border: 1px solid rgba(255, 23, 68, 0.2);
     background: rgba(0, 0, 0, 0.03);
 }
@@ -199,6 +199,69 @@
     width: 100%;
     display: block;
     border-radius: 16px;
+}
+
+/* ── 3D Rotatable AR image preview ─────────────────────────────────── */
+.ar-rotate-wrapper {
+    padding: 12px 0;
+    text-align: center;
+}
+
+.ar-rotate-scene {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    perspective: 800px;
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+}
+
+.ar-rotate-card {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.05s ease-out;
+    will-change: transform;
+}
+
+.ar-rotate-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.15),
+        0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.ar-rotate-front {
+    z-index: 2;
+}
+
+.ar-rotate-back {
+    transform: rotateY(180deg);
+}
+
+.ar-rotate-face img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 14px;
+    pointer-events: none;
+}
+
+.ar-rotate-hint {
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8a6b72;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 .preview-body {

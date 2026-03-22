@@ -128,7 +128,7 @@
   function showPlaceholder() {
     lastGeneratedDataUrl = null;
     resultContent.className = 'result-placeholder';
-    resultContent.innerHTML = 'Enter a prompt and click Generate. Your image will appear here and you can use it in AR.';
+    resultContent.innerHTML = 'Describe your AR filter and click Generate. The AI will create a face overlay image you can apply with the AR camera.';
   }
 
   async function generate() {

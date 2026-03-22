@@ -1,17 +1,12 @@
 /*  ar_camera.js  –  AR Camera with facial-landmark-driven image overlay
  *
  *  Flow:
- *  1.  User generates an image in picture_gen and clicks "Use in AR"
+ *  1.  User generates an AR image in picture_gen and clicks "Use in AR"
  *  2.  The generated image dataURL is stored in sessionStorage('arGeneratedImage')
- *  3.  This page opens the camera, loads MediaPipe FaceLandmarker (478 points),
- *      and on every frame:
- *      a.  Detects face landmarks
- *      b.  Draws the AR image warped to the facial curvature on a canvas overlay
- *      c.  Optionally shows the raw landmark dots
- *  4.  User can capture a composite photo (video + AR overlay).
- *
- *  Adapted from artestprototype – uses the same MediaPipe Tasks Vision CDN
- *  approach with FaceLandmarker (not the older face-detection model).
+ *  3.  This page shows a rotatable 3D preview of the AR image (drag left/right
+ *      up to 20 degrees) and opens the camera with MediaPipe FaceLandmarker.
+ *  4.  On every frame the AR image is warped onto the face mesh with curvature.
+ *  5.  User can capture a composite photo.
  */
 
 // ── Auth guard ──────────────────────────────────────────────────────────
@@ -21,17 +16,17 @@ if (!isLoggedIn) {
 }
 
 // ── DOM refs ────────────────────────────────────────────────────────────
-const videoEl        = document.getElementById('video');
-const videoContainer = document.querySelector('.video-container');
-const landmarkCanvas = document.getElementById('landmarkCanvas');
-const arOverlay      = document.getElementById('arOverlay');
-const offscreen      = document.getElementById('offscreenCanvas');
-const startBtn       = document.getElementById('startBtn');
-const captureBtn     = document.getElementById('captureBtn');
-const switchBtn      = document.getElementById('switchBtn');
-const toggleLMBtn    = document.getElementById('toggleLandmarksBtn');
-const stopBtn        = document.getElementById('stopBtn');
-const statusBanner   = document.getElementById('status');
+const videoEl         = document.getElementById('video');
+const videoContainer  = document.querySelector('.video-container');
+const landmarkCanvas  = document.getElementById('landmarkCanvas');
+const arOverlay       = document.getElementById('arOverlay');
+const offscreen       = document.getElementById('offscreenCanvas');
+const startBtn        = document.getElementById('startBtn');
+const captureBtn      = document.getElementById('captureBtn');
+const switchBtn       = document.getElementById('switchBtn');
+const toggleLMBtn     = document.getElementById('toggleLandmarksBtn');
+const stopBtn         = document.getElementById('stopBtn');
+const statusBanner    = document.getElementById('status');
 const arSourcePreview = document.getElementById('arSourcePreview');
 const capturePreview  = document.getElementById('capturePreview');
 
@@ -39,21 +34,21 @@ const landmarkCtx = landmarkCanvas.getContext('2d');
 const arCtx       = arOverlay.getContext('2d');
 const offCtx      = offscreen.getContext('2d');
 
-// ── MediaPipe CDN paths (same versions as artestprototype) ──────────────
+// ── MediaPipe CDN paths ─────────────────────────────────────────────────
 const TASKS_VISION_URL   = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
 const WASM_PATH          = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
 const FALLBACK_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
 
 // ── State ───────────────────────────────────────────────────────────────
-let stream            = null;
-let facingMode        = 'user';
-let faceLandmarker    = null;
-let animFrameId       = null;
-let lastVideoTime     = -1;
-let showLandmarks     = true;
-let photoCount        = 0;
-let arImage           = null;      // HTMLImageElement of the generated picture
-let FaceLandmarkerCls = null;
+let stream             = null;
+let facingMode         = 'user';
+let faceLandmarker     = null;
+let animFrameId        = null;
+let lastVideoTime      = -1;
+let showLandmarks      = true;
+let photoCount         = 0;
+let arImage            = null;
+let FaceLandmarkerCls  = null;
 let FilesetResolverCls = null;
 
 // ── Helpers ─────────────────────────────────────────────────────────────
@@ -64,18 +59,33 @@ function setStatus(msg, type = 'info') {
 }
 
 function setControls(running) {
-    startBtn.disabled          = running;
-    captureBtn.disabled        = !running;
-    switchBtn.disabled         = !running;
-    toggleLMBtn.disabled       = !running;
-    stopBtn.disabled           = !running;
+    startBtn.disabled    = running;
+    captureBtn.disabled  = !running;
+    switchBtn.disabled   = !running;
+    toggleLMBtn.disabled = !running;
+    stopBtn.disabled     = !running;
 }
 
 function updateMirror() {
     videoContainer.classList.toggle('mirror', facingMode === 'user');
 }
 
-// ── Load AR source image from sessionStorage ────────────────────────────
+// ── getUserMedia polyfill for older iOS/WebKit ──────────────────────────
+function getGetUserMedia() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        return (constraints) => navigator.mediaDevices.getUserMedia(constraints);
+    }
+    const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia ||
+                   navigator.mozGetUserMedia || navigator.msGetUserMedia;
+    if (legacy) {
+        return (constraints) => new Promise((resolve, reject) => {
+            legacy.call(navigator, constraints, resolve, reject);
+        });
+    }
+    return null;
+}
+
+// ── Load AR source image + build rotatable 3D preview ───────────────────
 function loadArImage() {
     const dataUrl = sessionStorage.getItem('arGeneratedImage');
     if (!dataUrl) {
@@ -87,10 +97,7 @@ function loadArImage() {
     img.onload = () => {
         arImage = img;
         arSourcePreview.innerHTML = '';
-        const previewImg = document.createElement('img');
-        previewImg.src = dataUrl;
-        previewImg.alt = 'AR filter source';
-        arSourcePreview.appendChild(previewImg);
+        buildRotatablePreview(dataUrl);
         setStatus('AR image loaded. Start the camera to begin.', 'success');
     };
     img.onerror = () => {
@@ -99,14 +106,102 @@ function loadArImage() {
     img.src = dataUrl;
 }
 
+// ── Rotatable 3D preview (drag / swipe left-right, +-20 degrees) ────────
+function buildRotatablePreview(dataUrl) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'ar-rotate-wrapper';
+
+    const scene = document.createElement('div');
+    scene.className = 'ar-rotate-scene';
+
+    const card = document.createElement('div');
+    card.className = 'ar-rotate-card';
+
+    const front = document.createElement('div');
+    front.className = 'ar-rotate-face ar-rotate-front';
+    const imgEl = document.createElement('img');
+    imgEl.src = dataUrl;
+    imgEl.alt = 'AR filter preview';
+    imgEl.draggable = false;
+    front.appendChild(imgEl);
+
+    const back = document.createElement('div');
+    back.className = 'ar-rotate-face ar-rotate-back';
+    const imgBack = document.createElement('img');
+    imgBack.src = dataUrl;
+    imgBack.alt = 'AR filter preview (back)';
+    imgBack.draggable = false;
+    back.appendChild(imgBack);
+
+    card.appendChild(front);
+    card.appendChild(back);
+    scene.appendChild(card);
+
+    const hint = document.createElement('div');
+    hint.className = 'ar-rotate-hint';
+    hint.textContent = 'Drag to rotate';
+
+    wrapper.appendChild(scene);
+    wrapper.appendChild(hint);
+    arSourcePreview.appendChild(wrapper);
+
+    // ── Drag / touch rotation logic ──
+    const MAX_DEG = 20;
+    let isDragging = false;
+    let startX = 0;
+    let currentDeg = 0;
+
+    function applyRotation(deg) {
+        currentDeg = Math.max(-MAX_DEG, Math.min(MAX_DEG, deg));
+        card.style.transform = `rotateY(${currentDeg}deg)`;
+    }
+
+    // Mouse events
+    scene.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX - currentDeg;
+        scene.style.cursor = 'grabbing';
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const deg = (e.clientX - startX);
+        applyRotation(deg);
+    });
+    window.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        scene.style.cursor = 'grab';
+    });
+
+    // Touch events (iPad / mobile)
+    scene.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        isDragging = true;
+        startX = e.touches[0].clientX - currentDeg;
+        e.preventDefault();
+    }, { passive: false });
+    scene.addEventListener('touchmove', (e) => {
+        if (!isDragging || e.touches.length !== 1) return;
+        const deg = (e.touches[0].clientX - startX);
+        applyRotation(deg);
+        e.preventDefault();
+    }, { passive: false });
+    scene.addEventListener('touchend', () => {
+        isDragging = false;
+    });
+
+    applyRotation(0);
+}
+
 // ── Load MediaPipe Vision API ───────────────────────────────────────────
 async function ensureVisionApi() {
     if (FaceLandmarkerCls && FilesetResolverCls) return;
     setStatus('Loading MediaPipe module...');
     const vision = await import(TASKS_VISION_URL);
     const mod = vision.default ?? vision;
-    FaceLandmarkerCls   = mod.FaceLandmarker   ?? vision.FaceLandmarker   ?? null;
-    FilesetResolverCls  = mod.FilesetResolver  ?? vision.FilesetResolver  ?? null;
+    FaceLandmarkerCls  = mod.FaceLandmarker  ?? vision.FaceLandmarker  ?? null;
+    FilesetResolverCls = mod.FilesetResolver ?? vision.FilesetResolver ?? null;
     if (!FaceLandmarkerCls || !FilesetResolverCls) {
         throw new Error('MediaPipe module missing FaceLandmarker or FilesetResolver');
     }
@@ -130,14 +225,14 @@ async function ensureFaceLandmarker() {
         minFacePresenceConfidence: 0.5,
         minTrackingConfidence: 0.5,
         outputFaceBlendshapes: false,
-        outputFacialTransformationMatrixes: false,
+        outputFacialTransformationMatrixes: true,
     });
 
     setStatus('Face landmark model ready.', 'success');
     return faceLandmarker;
 }
 
-// ── Canvas sizing (DPR-aware, matching artestprototype) ─────────────────
+// ── Canvas sizing (DPR-aware) ───────────────────────────────────────────
 function syncCanvasSize(canvas, ctx) {
     const dpr = window.devicePixelRatio || 1;
     const rect = videoContainer.getBoundingClientRect();
@@ -185,23 +280,7 @@ function drawLandmarkDots(landmarks, displayW, displayH) {
     landmarkCtx.shadowBlur = 0;
 }
 
-// ── Drawing: AR image overlay with curvature ────────────────────────────
-//
-// We use the 478 face landmarks to define a triangulated mesh.  The AR
-// image is texture-mapped onto the face oval (landmarks that trace the
-// outer silhouette + forehead) by splitting the region into triangles
-// and drawing each triangle of the source image warped to the
-// corresponding landmark triangle.  This gives natural curvature
-// because each small triangle follows the 3D surface normals.
-//
-// Key landmark indices for the face oval (MediaPipe canonical mesh):
-//   Silhouette: 10,338,297,332,284,251,389,356,454,323,361,288,397,365,
-//               379,378,400,377,152,148,176,149,150,136,172,58,132,93,
-//               234,127,162,21,54,103,67,109
-//
-// We also include a few interior points (nose bridge, between eyes, etc.)
-// to create a denser mesh for better curvature.
-
+// ── Face mesh indices ───────────────────────────────────────────────────
 const FACE_OVAL_INDICES = [
     10, 338, 297, 332, 284, 251, 389, 356, 454, 323,
     361, 288, 397, 365, 379, 378, 400, 377, 152, 148,
@@ -209,91 +288,48 @@ const FACE_OVAL_INDICES = [
     162, 21, 54, 103, 67, 109
 ];
 
-// Interior landmark indices for mesh density (forehead, nose, cheeks, chin)
 const INTERIOR_INDICES = [
-    151,   // top of forehead center
-    9,     // forehead
-    8,     // forehead lower
-    168,   // between brows
-    6,     // nose bridge top
-    197,   // nose bridge mid
-    195,   // nose tip
-    5,     // nose lower
-    4,     // nose bottom center
-    1,     // upper lip center
-    0,     // lower lip center
-    164,   // chin area
-    57,    // mouth left
-    287,   // mouth right
-    130,   // left cheek inner
-    359,   // right cheek inner
-    50,    // left cheek outer
-    280,   // right cheek outer
-    117,   // left eye outer lower
-    346,   // right eye outer lower
-    123,   // left cheek mid
-    352,   // right cheek mid
-    187,   // left jaw
-    411,   // right jaw
-    205,   // left lower cheek
-    425,   // right lower cheek
+    151, 9, 8, 168, 6, 197, 195, 5, 4, 1, 0, 164,
+    57, 287, 130, 359, 50, 280, 117, 346, 123, 352,
+    187, 411, 205, 425,
 ];
 
 const ALL_MESH_INDICES = [...FACE_OVAL_INDICES, ...INTERIOR_INDICES];
 
-// Earcut-style triangulation for our specific point set would be ideal,
-// but to keep it lightweight we use Delaunay via a simple approach:
-// pre-triangulate on first detection using the normalised UV coords.
-let meshTriangles = null;   // [[i,j,k], ...]
+let meshTriangles = null;
 
+// ── Delaunay triangulation (Bowyer-Watson) ──────────────────────────────
 function triangulate(pts2d) {
-    // Simple ear-clipping / fan triangulation is not great for concave
-    // shapes.  Instead we do a basic Delaunay via the Bowyer-Watson algo
-    // on the UV-normalised landmark positions.
-    // For robustness we fall back to a simple fan if it fails.
     const n = pts2d.length;
     if (n < 3) return [];
-
     try {
         return bowyerWatson(pts2d);
     } catch (_) {
-        // fallback: fan from centroid
         const cx = pts2d.reduce((s, p) => s + p[0], 0) / n;
         const cy = pts2d.reduce((s, p) => s + p[1], 0) / n;
-        // sort points by angle from centroid
         const indexed = pts2d.map((p, i) => ({ i, a: Math.atan2(p[1] - cy, p[0] - cx) }));
         indexed.sort((a, b) => a.a - b.a);
         const tris = [];
         for (let k = 0; k < n; k++) {
             tris.push([indexed[k].i, indexed[(k + 1) % n].i, -1]);
         }
-        // -1 means centroid  – we'll handle this specially
         return tris;
     }
 }
 
 function bowyerWatson(points) {
-    // Bowyer-Watson Delaunay triangulation
     const n = points.length;
-    // super triangle
-    const stA = [-10, -10];
-    const stB = [20, -10];
-    const stC = [5, 20];
+    const stA = [-10, -10], stB = [20, -10], stC = [5, 20];
     const allPts = [...points, stA, stB, stC];
     const siA = n, siB = n + 1, siC = n + 2;
-
     let triangles = [{ v: [siA, siB, siC] }];
 
     for (let i = 0; i < n; i++) {
         const p = allPts[i];
         const bad = [];
         for (let t = 0; t < triangles.length; t++) {
-            if (inCircumcircle(p, allPts, triangles[t].v)) {
-                bad.push(t);
-            }
+            if (inCircumcircle(p, allPts, triangles[t].v)) bad.push(t);
         }
-
-        // find boundary polygon
         const edges = [];
         for (const bi of bad) {
             const tri = triangles[bi].v;
@@ -303,22 +339,16 @@ function bowyerWatson(points) {
                 for (const bj of bad) {
                     if (bj === bi) continue;
                     const t2 = triangles[bj].v;
-                    if ((t2.includes(ea) && t2.includes(eb))) { shared = true; break; }
+                    if (t2.includes(ea) && t2.includes(eb)) { shared = true; break; }
                 }
                 if (!shared) edges.push([ea, eb]);
             }
         }
-
-        // remove bad triangles (iterate in reverse)
         const badSet = new Set(bad);
         triangles = triangles.filter((_, idx) => !badSet.has(idx));
-
-        for (const [ea, eb] of edges) {
-            triangles.push({ v: [i, ea, eb] });
-        }
+        for (const [ea, eb] of edges) triangles.push({ v: [i, ea, eb] });
     }
 
-    // remove any triangle that uses a super-triangle vertex
     const result = [];
     for (const t of triangles) {
         if (t.v[0] >= n || t.v[1] >= n || t.v[2] >= n) continue;
@@ -334,12 +364,29 @@ function inCircumcircle(p, pts, tri) {
     const dx = ax - p[0], dy = ay - p[1];
     const ex = bx - p[0], ey = by - p[1];
     const fx = cx - p[0], fy = cy - p[1];
-    const det = dx * (ey * (fx * fx + fy * fy) - fy * (ex * ex + ey * ey))
-              - dy * (ex * (fx * fx + fy * fy) - fx * (ex * ex + ey * ey))
-              + (dx * dx + dy * dy) * (ex * fy - ey * fx);
-    return det > 0;
+    return (dx * (ey * (fx * fx + fy * fy) - fy * (ex * ex + ey * ey))
+          - dy * (ex * (fx * fx + fy * fy) - fx * (ex * ex + ey * ey))
+          + (dx * dx + dy * dy) * (ex * fy - ey * fx)) > 0;
 }
 
+// ── Estimate head yaw from landmarks (radians) ─────────────────────────
+// Uses nose tip (4), left cheek (234), right cheek (454) to estimate
+// horizontal head rotation.  This drives how much of the AR image's
+// side is revealed when the user turns their head.
+function estimateYawDeg(face) {
+    const nose  = face[4];
+    const left  = face[234];
+    const right = face[454];
+    if (!nose || !left || !right) return 0;
+
+    const midX = (left.x + right.x) / 2;
+    const faceW = Math.abs(right.x - left.x) || 0.001;
+    const offset = (nose.x - midX) / faceW;   // -0.5..+0.5 roughly
+    // Map to degrees; empirically +-0.25 offset ≈ +-30 deg head turn
+    return offset * 120;   // scale factor
+}
+
+// ── Drawing: AR image overlay with curvature + rotation ─────────────────
 function drawArOverlay(landmarks, displayW, displayH) {
     arCtx.clearRect(0, 0, displayW, displayH);
     if (!arImage || !landmarks.length) return;
@@ -354,11 +401,12 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const ox = (displayW - rw) / 2;
     const oy = (displayH - rh) / 2;
 
-    const face = landmarks[0];   // first face only
+    const face = landmarks[0];
+    const yawDeg = estimateYawDeg(face);
 
-    // Collect the mesh points in display coords + normalised UV for texture
-    const dstPts = [];   // [x,y] in canvas display space
-    const uvPts  = [];   // [u,v] normalised 0..1 for the AR image texture
+    // Collect mesh points in display coords + normalised UV for texture
+    const dstPts = [];
+    const uvPts  = [];
 
     // Compute bounding box of face oval for UV normalisation
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -375,62 +423,84 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const bw = maxX - minX || 1;
     const bh = maxY - minY || 1;
 
+    // Use z-depth from landmarks to create perspective-aware UV mapping
+    // When head rotates, the z-values shift, naturally compressing one
+    // side of the texture and expanding the other – giving a 3D look.
+    let minZ = Infinity, maxZ = -Infinity;
     for (const idx of ALL_MESH_INDICES) {
         const pt = face[idx];
-        if (!pt) { dstPts.push([displayW / 2, displayH / 2]); uvPts.push([0.5, 0.5]); continue; }
+        if (pt && pt.z !== undefined) {
+            if (pt.z < minZ) minZ = pt.z;
+            if (pt.z > maxZ) maxZ = pt.z;
+        }
+    }
+    const zRange = (maxZ - minZ) || 0.001;
+
+    for (const idx of ALL_MESH_INDICES) {
+        const pt = face[idx];
+        if (!pt) {
+            dstPts.push([displayW / 2, displayH / 2]);
+            uvPts.push([0.5, 0.5]);
+            continue;
+        }
         const sx = pt.x * rw + ox;
         const sy = pt.y * rh + oy;
         dstPts.push([sx, sy]);
-        uvPts.push([(sx - minX) / bw, (sy - minY) / bh]);
+
+        // Base UV from bounding box
+        let u = (sx - minX) / bw;
+        let v = (sy - minY) / bh;
+
+        // Depth-aware UV shift: when head turns, compress texture on the
+        // far side and stretch on the near side.  The z value from
+        // MediaPipe increases for points further from the camera.
+        if (pt.z !== undefined) {
+            const zNorm = (pt.z - minZ) / zRange;   // 0..1, 0 = closest
+            // Shift U based on depth and yaw: further points get their
+            // texture compressed toward the center
+            const yawFactor = Math.sin((yawDeg * Math.PI) / 180) * 0.15;
+            u += zNorm * yawFactor;
+        }
+
+        u = Math.max(0, Math.min(1, u));
+        v = Math.max(0, Math.min(1, v));
+        uvPts.push([u, v]);
     }
 
-    // Triangulate once (topology stays stable across frames)
     if (!meshTriangles) {
         meshTriangles = triangulate(uvPts);
     }
 
-    // Draw each triangle: clip to triangle in dest space, draw transformed source
     const imgW = arImage.naturalWidth  || arImage.width;
     const imgH = arImage.naturalHeight || arImage.height;
 
-    arCtx.globalAlpha = 0.75;
+    arCtx.globalAlpha = 0.78;
 
     for (const tri of meshTriangles) {
         const [i0, i1, i2] = tri;
         if (i0 < 0 || i1 < 0 || i2 < 0) continue;
         if (i0 >= dstPts.length || i1 >= dstPts.length || i2 >= dstPts.length) continue;
 
-        // destination triangle (canvas coords)
         const dx0 = dstPts[i0][0], dy0 = dstPts[i0][1];
         const dx1 = dstPts[i1][0], dy1 = dstPts[i1][1];
         const dx2 = dstPts[i2][0], dy2 = dstPts[i2][1];
 
-        // source triangle (image pixel coords)
         const su0 = uvPts[i0][0] * imgW, sv0 = uvPts[i0][1] * imgH;
         const su1 = uvPts[i1][0] * imgW, sv1 = uvPts[i1][1] * imgH;
         const su2 = uvPts[i2][0] * imgW, sv2 = uvPts[i2][1] * imgH;
 
-        drawTexturedTriangle(
-            arCtx,
-            arImage,
+        drawTexturedTriangle(arCtx, arImage,
             su0, sv0, su1, sv1, su2, sv2,
-            dx0, dy0, dx1, dy1, dx2, dy2
-        );
+            dx0, dy0, dx1, dy1, dx2, dy2);
     }
 
     arCtx.globalAlpha = 1.0;
 }
 
-/**
- * Draw a triangle from a source image onto the canvas using affine
- * texture mapping.  This gives the curvature effect because each
- * small triangle is independently transformed.
- */
 function drawTexturedTriangle(ctx, img,
     sx0, sy0, sx1, sy1, sx2, sy2,
     dx0, dy0, dx1, dy1, dx2, dy2
 ) {
-    // Clip to destination triangle
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(dx0, dy0);
@@ -439,8 +509,6 @@ function drawTexturedTriangle(ctx, img,
     ctx.closePath();
     ctx.clip();
 
-    // Compute affine transform: source triangle → dest triangle
-    // We solve for M such that M * [sx, sy, 1]^T = [dx, dy]^T
     const denom = (sx0 * (sy1 - sy2) + sx1 * (sy2 - sy0) + sx2 * (sy0 - sy1));
     if (Math.abs(denom) < 1e-8) { ctx.restore(); return; }
 
@@ -486,7 +554,9 @@ function startLoop() {
                 drawArOverlay(faces, dw2, dh2);
 
                 if (faces.length > 0) {
-                    setStatus(`Tracking face | ${ALL_MESH_INDICES.length} mesh points | AR overlay active`, 'success');
+                    const yaw = estimateYawDeg(faces[0]);
+                    const dir = yaw < -3 ? ' (looking right)' : yaw > 3 ? ' (looking left)' : '';
+                    setStatus(`Tracking face | yaw ${yaw.toFixed(0)}deg${dir} | AR active`, 'success');
                 } else {
                     setStatus('No face detected. Look at the camera.', 'info');
                 }
@@ -502,10 +572,17 @@ function startLoop() {
     animFrameId = requestAnimationFrame(step);
 }
 
-// ── Camera control ──────────────────────────────────────────────────────
+// ── Camera control (with iPad / iOS polyfill) ───────────────────────────
 async function startCamera() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setStatus('Camera API not available.', 'error');
+    const getUserMedia = getGetUserMedia();
+
+    if (!getUserMedia) {
+        const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (!isSecure) {
+            setStatus('Camera requires HTTPS. This page must be served over https:// or localhost.', 'error');
+        } else {
+            setStatus('Camera API is not supported in this browser. Try Safari or Chrome.', 'error');
+        }
         return;
     }
 
@@ -520,14 +597,17 @@ async function startCamera() {
 
     stopCurrentStream();
     updateMirror();
-    setStatus('Requesting camera...');
+    setStatus('Requesting camera permission...');
 
     try {
-        stream = await navigator.mediaDevices.getUserMedia({
+        stream = await getUserMedia({
             video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
             audio: false,
         });
         videoEl.srcObject = stream;
+        videoEl.setAttribute('playsinline', '');
+        videoEl.setAttribute('webkit-playsinline', '');
+        videoEl.muted = true;
         await videoEl.play();
 
         const track = stream.getVideoTracks()[0];
@@ -539,13 +619,21 @@ async function startCamera() {
 
         setControls(true);
         setStatus('Camera ready. Tracking landmarks...', 'success');
-        meshTriangles = null;   // re-triangulate for new camera resolution
+        meshTriangles = null;
         startLoop();
     } catch (err) {
         stopLoop();
         setControls(false);
-        setStatus(`Camera error: ${err.message}`, 'error');
-        console.error(err);
+        let msg = err.message || String(err);
+        if (err.name === 'NotAllowedError') {
+            msg = 'Camera permission denied. Allow camera access in your browser settings and try again.';
+        } else if (err.name === 'NotFoundError') {
+            msg = 'No camera found on this device.';
+        } else if (err.name === 'NotReadableError' || err.name === 'AbortError') {
+            msg = 'Camera is in use by another app. Close other camera apps and try again.';
+        }
+        setStatus(msg, 'error');
+        console.error('Camera error:', err);
     }
 }
 
@@ -560,17 +648,13 @@ function stopCurrentStream() {
 function capturePhoto() {
     if (!stream || !videoEl.videoWidth) return;
 
-    // Composite: video frame + AR overlay
     offscreen.width  = videoEl.videoWidth;
     offscreen.height = videoEl.videoHeight;
 
     offCtx.drawImage(videoEl, 0, 0, offscreen.width, offscreen.height);
-
-    // Draw AR overlay scaled from display size to video size
     if (arOverlay.width > 0 && arOverlay.height > 0) {
         offCtx.drawImage(arOverlay, 0, 0, offscreen.width, offscreen.height);
     }
-    // Draw landmark overlay too
     if (showLandmarks && landmarkCanvas.width > 0 && landmarkCanvas.height > 0) {
         offCtx.drawImage(landmarkCanvas, 0, 0, offscreen.width, offscreen.height);
     }
@@ -583,11 +667,9 @@ function capturePhoto() {
         const name = `lifesync_ar_${ts}.png`;
         const url  = URL.createObjectURL(blob);
 
-        // Auto-download
         const a = document.createElement('a');
         a.href = url; a.download = name; a.click();
 
-        // Show in preview
         const item = document.createElement('div');
         item.className = 'preview-item';
         const cap = document.createElement('div');
@@ -635,7 +717,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 window.addEventListener('resize', () => {
-    meshTriangles = null;   // force re-triangulation on resize
+    meshTriangles = null;
 });
 
 // ── Init ────────────────────────────────────────────────────────────────
