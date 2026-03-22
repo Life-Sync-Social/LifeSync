@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: lifesync-picgen
+    runtime: node
+    rootDir: picture_gen
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: HF_TOKEN
+        sync: false
+      - key: HF_IMAGE_MODEL
+        value: black-forest-labs/FLUX.1-schnell
+      - key: NODE_ENV
+        value: production

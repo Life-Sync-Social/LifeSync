@@ -21,7 +21,7 @@ const configToken = (config.HF_TOKEN && !PLACEHOLDER_TOKENS.includes(config.HF_T
 const HF_TOKEN = configToken || process.env.HF_TOKEN;
 const HF_MODEL = config.HF_CHAT_MODEL || process.env.HF_CHAT_MODEL || 'HuggingFaceTB/SmolLM3-3B:hf-inference';
 const HF_IMAGE_MODEL = config.HF_IMAGE_MODEL || process.env.HF_IMAGE_MODEL || 'black-forest-labs/FLUX.1-schnell';
-const PORT = config.PORT || process.env.PORT || 5500;
+const PORT = process.env.PORT || config.PORT || 5500;
 
 if (!HF_TOKEN || HF_TOKEN === 'YOUR_HUGGINGFACE_API_KEY_HERE' || HF_TOKEN === 'your_hugging_face_token_here') {
   console.error('Missing or invalid HF_TOKEN. Set your API key in picture_gen/config.json or picture_gen/.env');
