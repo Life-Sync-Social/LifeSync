@@ -223,33 +223,27 @@ function drawLandmarkDots(landmarks, displayW, displayH) {
     }
 }
 
-// ── AR overlay: dense 33x33 grid (1024 quads, 2048 triangles) ───────────
-// Uses 4 corner anchor landmarks to define a face quad, then generates
-// a dense bilinear grid between them. Each cell is tiny so the affine
-// warp per triangle is nearly lossless.
+// ── AR overlay: landmark-anchored grid with per-vertex UV from face bbox ─
+// Uses a grid of real face landmarks. Each vertex's UV coordinate is
+// computed from its position within the face bounding box, so irregular
+// landmark spacing doesn't distort the image.
 
-const GRID_N = 33;  // 33x33 points = 32x32 cells = 1024 quads = 2048 tris
+// 7 columns x 9 rows grid of landmark indices
+// Arranged left-to-right, top-to-bottom on the face
+const FACE_GRID = [
+    [251, 332, 297,  10,  67, 103,  21],   // forehead top
+    [389, 284, 338, 151, 109,  54, 162],   // forehead
+    [356, 368, 336,   9, 107, 139, 127],   // upper forehead
+    [454, 353, 276, 168,  46, 124, 234],   // brow line
+    [323, 346, 280,   6,  50, 117,  93],   // eyes / nose
+    [361, 352, 359,   4, 130, 123, 132],   // cheeks / nose
+    [288, 411, 287,   1,  57, 187,  58],   // mouth
+    [397, 425, 307,   0,  78, 205, 172],   // lower mouth
+    [365, 378, 400, 152, 176, 149, 136],   // chin
+];
 
-// Anchor landmarks for the 4 corners of the face region
-const LM_TOP    = 10;   // forehead top center
-const LM_BOTTOM = 152;  // chin bottom center
-const LM_LEFT   = 234;  // left ear
-const LM_RIGHT  = 454;  // right ear
-// Extra anchors for better corner estimates
-const LM_LEFT_BROW  = 127;
-const LM_RIGHT_BROW = 356;
-const LM_LEFT_JAW   = 172;
-const LM_RIGHT_JAW  = 397;
-
-function getPt(face, idx, rw, rh, ox, oy) {
-    const pt = face[idx];
-    if (!pt) return null;
-    return { x: pt.x * rw + ox, y: pt.y * rh + oy };
-}
-
-function mid(a, b) {
-    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-}
+const G_ROWS = FACE_GRID.length;
+const G_COLS = FACE_GRID[0].length;
 
 function drawArOverlay(landmarks, displayW, displayH) {
     arCtx.clearRect(0, 0, displayW, displayH);
@@ -270,102 +264,77 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const imgW = arImage.naturalWidth || arImage.width;
     const imgH = arImage.naturalHeight || arImage.height;
 
-    // Get anchor points in raw video-mapped coordinates
-    const top    = getPt(face, LM_TOP, rw, rh, ox, oy);
-    const bottom = getPt(face, LM_BOTTOM, rw, rh, ox, oy);
-    const left   = getPt(face, LM_LEFT, rw, rh, ox, oy);
-    const right  = getPt(face, LM_RIGHT, rw, rh, ox, oy);
-    const lBrow  = getPt(face, LM_LEFT_BROW, rw, rh, ox, oy);
-    const rBrow  = getPt(face, LM_RIGHT_BROW, rw, rh, ox, oy);
-    const lJaw   = getPt(face, LM_LEFT_JAW, rw, rh, ox, oy);
-    const rJaw   = getPt(face, LM_RIGHT_JAW, rw, rh, ox, oy);
+    // Convert all grid landmarks to display coords
+    const pts = [];  // pts[r][c] = {x, y}
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
 
-    if (!top || !bottom || !left || !right || !lBrow || !rBrow || !lJaw || !rJaw) return;
-
-    // Build 4 corners of the face quad
-    // top-left:     between forehead and left brow
-    // top-right:    between forehead and right brow
-    // bottom-left:  between chin and left jaw
-    // bottom-right: between chin and right jaw
-    let tl = { x: lBrow.x, y: top.y };
-    let tr = { x: rBrow.x, y: top.y };
-    let bl = { x: lJaw.x,  y: bottom.y };
-    let br = { x: rJaw.x,  y: bottom.y };
-
-    // Mirror for selfie mode
-    if (isMirror) {
-        tl.x = displayW - tl.x;
-        tr.x = displayW - tr.x;
-        bl.x = displayW - bl.x;
-        br.x = displayW - br.x;
-        // After mirroring, tl and tr swap sides, bl and br swap sides
-        let tmp;
-        tmp = tl; tl = tr; tr = tmp;
-        tmp = bl; bl = br; br = tmp;
+    for (let r = 0; r < G_ROWS; r++) {
+        pts[r] = [];
+        for (let c = 0; c < G_COLS; c++) {
+            const lm = face[FACE_GRID[r][c]];
+            let x, y;
+            if (!lm) {
+                x = displayW / 2; y = displayH / 2;
+            } else {
+                x = lm.x * rw + ox;
+                y = lm.y * rh + oy;
+            }
+            if (isMirror) x = displayW - x;
+            pts[r][c] = { x, y };
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+        }
     }
 
-    // Generate dense grid via bilinear interpolation of the 4 corners
-    const grid = [];
-    for (let r = 0; r < GRID_N; r++) {
-        grid[r] = [];
-        const v = r / (GRID_N - 1);  // 0=top, 1=bottom
-        for (let c = 0; c < GRID_N; c++) {
-            const u = c / (GRID_N - 1);  // 0=left, 1=right
-            // Bilinear interpolation
-            const topX = tl.x + (tr.x - tl.x) * u;
-            const topY = tl.y + (tr.y - tl.y) * u;
-            const botX = bl.x + (br.x - bl.x) * u;
-            const botY = bl.y + (br.y - bl.y) * u;
-            grid[r][c] = {
-                x: topX + (botX - topX) * v,
-                y: topY + (botY - topY) * v,
-            };
+    const bw = maxX - minX || 1;
+    const bh = maxY - minY || 1;
+
+    // Compute UV for each vertex based on its position in the face bbox
+    // This ensures the image maps naturally to each landmark's actual position
+    const uvs = [];  // uvs[r][c] = {u, v} in image pixel coords
+    for (let r = 0; r < G_ROWS; r++) {
+        uvs[r] = [];
+        for (let c = 0; c < G_COLS; c++) {
+            let u = (pts[r][c].x - minX) / bw;  // 0..1
+            const v = (pts[r][c].y - minY) / bh;
+            // In mirror mode, flip UV horizontally so image isn't reversed
+            if (isMirror) u = 1 - u;
+            uvs[r][c] = { u: u * imgW, v: v * imgH };
         }
     }
 
     arCtx.globalAlpha = 0.85;
 
-    // Draw 1024 quads (2048 triangles)
-    for (let r = 0; r < GRID_N - 1; r++) {
-        for (let c = 0; c < GRID_N - 1; c++) {
-            const p_tl = grid[r][c];
-            const p_tr = grid[r][c + 1];
-            const p_bl = grid[r + 1][c];
-            const p_br = grid[r + 1][c + 1];
+    // Draw each quad as 2 triangles
+    for (let r = 0; r < G_ROWS - 1; r++) {
+        for (let c = 0; c < G_COLS - 1; c++) {
+            // Destination quad corners
+            const d00 = pts[r][c],     d10 = pts[r][c+1];
+            const d01 = pts[r+1][c],   d11 = pts[r+1][c+1];
+            // Source UV corners
+            const s00 = uvs[r][c],     s10 = uvs[r][c+1];
+            const s01 = uvs[r+1][c],   s11 = uvs[r+1][c+1];
 
-            const su = (c / (GRID_N - 1)) * imgW;
-            const sv = (r / (GRID_N - 1)) * imgH;
-            const sw = (1 / (GRID_N - 1)) * imgW;
-            const sh = (1 / (GRID_N - 1)) * imgH;
+            // Triangle 1: top-left, top-right, bottom-left
+            drawTri(arCtx, arImage,
+                s00.u, s00.v, d00.x, d00.y,
+                s10.u, s10.v, d10.x, d10.y,
+                s01.u, s01.v, d01.x, d01.y);
 
-            drawWarpedQuad(arCtx, arImage,
-                su, sv, sw, sh,
-                p_tl, p_tr, p_bl, p_br);
+            // Triangle 2: top-right, bottom-right, bottom-left
+            drawTri(arCtx, arImage,
+                s10.u, s10.v, d10.x, d10.y,
+                s11.u, s11.v, d11.x, d11.y,
+                s01.u, s01.v, d01.x, d01.y);
         }
     }
 
     arCtx.globalAlpha = 1.0;
 }
 
-// Draw a source rectangle from the image warped into a destination quad
-// by splitting into two triangles.
-function drawWarpedQuad(ctx, img, su, sv, sw, sh, tl, tr, bl, br) {
-    // Triangle 1: tl, tr, bl
-    drawTriangle(ctx, img,
-        su, sv,          tl.x, tl.y,
-        su + sw, sv,     tr.x, tr.y,
-        su, sv + sh,     bl.x, bl.y);
-
-    // Triangle 2: tr, br, bl
-    drawTriangle(ctx, img,
-        su + sw, sv,     tr.x, tr.y,
-        su + sw, sv + sh, br.x, br.y,
-        su, sv + sh,     bl.x, bl.y);
-}
-
-// Draw one triangle of the source image mapped to a destination triangle
-// using an affine transform.
-function drawTriangle(ctx, img,
+function drawTri(ctx, img,
     sx0, sy0, dx0, dy0,
     sx1, sy1, dx1, dy1,
     sx2, sy2, dx2, dy2
@@ -376,7 +345,7 @@ function drawTriangle(ctx, img,
 
     const a = (dx0 * (sy1 - sy2) + dx1 * (sy2 - sy0) + dx2 * (sy0 - sy1)) * id;
     const b = (dx0 * (sx2 - sx1) + dx1 * (sx0 - sx2) + dx2 * (sx1 - sx0)) * id;
-    const cc = (dx0 * (sx1*sy2 - sx2*sy1) + dx1 * (sx2*sy0 - sx0*sy2) + dx2 * (sx0*sy1 - sx1*sy0)) * id;
+    const cc= (dx0 * (sx1*sy2 - sx2*sy1) + dx1 * (sx2*sy0 - sx0*sy2) + dx2 * (sx0*sy1 - sx1*sy0)) * id;
     const d = (dy0 * (sy1 - sy2) + dy1 * (sy2 - sy0) + dy2 * (sy0 - sy1)) * id;
     const e = (dy0 * (sx2 - sx1) + dy1 * (sx0 - sx2) + dy2 * (sx1 - sx0)) * id;
     const f = (dy0 * (sx1*sy2 - sx2*sy1) + dy1 * (sx2*sy0 - sx0*sy2) + dy2 * (sx0*sy1 - sx1*sy0)) * id;
