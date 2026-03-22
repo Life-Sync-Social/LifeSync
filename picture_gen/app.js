@@ -11,13 +11,121 @@
   const HF_IMAGE_MODEL = 'black-forest-labs/FLUX.1-schnell';
   const HF_API_URL = 'https://router.huggingface.co/hf-inference/models/' + HF_IMAGE_MODEL;
 
-  // AR prompt prefix: tells the model to generate face-filter style images
-  const AR_PROMPT_PREFIX = 'Face mask design on solid black background, isolated face mask with no background scenery, face paint style, front-facing symmetrical mask filling the frame, no person wearing it, just the mask floating on pure black, vibrant colors, clean edges, digital art, ';
+  // Prompt: generate close-up face paint that fills the whole image
+  const AR_PROMPT_PREFIX = 'Extreme close-up of face paint design filling the entire image edge to edge, no background visible, no negative space, the painted pattern covers every pixel of the frame, front view of a face completely covered in detailed ';
 
   // ── API key (obfuscated) ──────────────────────────────────────────
   function _k() {
     var e = 'eGNEa0NmTlVkbEpFWE5TQ2tUS0ljWGJXdm9GVkh0ckRTcl9maA==';
     return atob(e).split('').reverse().join('');
+  }
+
+  // ── Background removal ────────────────────────────────────────────
+  // Detects the background by sampling edge pixels and flood-fills
+  // from all edges to remove it, leaving just the subject with
+  // transparent pixels.
+  function removeBackground(imgDataUrl) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () {
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        var c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        var imgData = ctx.getImageData(0, 0, w, h);
+        var px = imgData.data;
+
+        // Sample edge pixels to find background color
+        var edgeColors = [];
+        // Top and bottom rows
+        for (var x = 0; x < w; x += 2) {
+          var ti = x * 4;
+          edgeColors.push([px[ti], px[ti+1], px[ti+2]]);
+          var bi = ((h-1)*w + x) * 4;
+          edgeColors.push([px[bi], px[bi+1], px[bi+2]]);
+        }
+        // Left and right columns
+        for (var y = 0; y < h; y += 2) {
+          var li = (y*w) * 4;
+          edgeColors.push([px[li], px[li+1], px[li+2]]);
+          var ri = (y*w + w-1) * 4;
+          edgeColors.push([px[ri], px[ri+1], px[ri+2]]);
+        }
+
+        // Find median background color
+        edgeColors.sort(function(a,b) { return (a[0]+a[1]+a[2]) - (b[0]+b[1]+b[2]); });
+        var mid = Math.floor(edgeColors.length / 2);
+        var bgR = edgeColors[mid][0], bgG = edgeColors[mid][1], bgB = edgeColors[mid][2];
+
+        // Flood fill from edges - mark background pixels
+        var visited = new Uint8Array(w * h);
+        var queue = [];
+        var tolerance = 55;
+
+        function colorDist(i) {
+          var dr = px[i] - bgR, dg = px[i+1] - bgG, db = px[i+2] - bgB;
+          return Math.sqrt(dr*dr + dg*dg + db*db);
+        }
+
+        function isBg(i) {
+          return colorDist(i * 4) < tolerance;
+        }
+
+        // Seed from all edge pixels
+        for (var x2 = 0; x2 < w; x2++) {
+          if (isBg(x2)) queue.push(x2);
+          if (isBg((h-1)*w + x2)) queue.push((h-1)*w + x2);
+        }
+        for (var y2 = 0; y2 < h; y2++) {
+          if (isBg(y2*w)) queue.push(y2*w);
+          if (isBg(y2*w + w-1)) queue.push(y2*w + w-1);
+        }
+
+        // BFS flood fill
+        while (queue.length > 0) {
+          var idx = queue.pop();
+          if (idx < 0 || idx >= w*h) continue;
+          if (visited[idx]) continue;
+          if (!isBg(idx)) continue;
+          visited[idx] = 1;
+
+          var ix = idx % w;
+          var iy = Math.floor(idx / w);
+          if (ix > 0) queue.push(idx - 1);
+          if (ix < w-1) queue.push(idx + 1);
+          if (iy > 0) queue.push(idx - w);
+          if (iy < h-1) queue.push(idx + w);
+        }
+
+        // Set background pixels to transparent, feather edges
+        for (var i = 0; i < w*h; i++) {
+          var pi = i * 4;
+          if (visited[i]) {
+            // Check if near a non-visited pixel for feathering
+            var ix2 = i % w;
+            var iy2 = Math.floor(i / w);
+            var nearSubject = false;
+            for (var dx = -2; dx <= 2; dx++) {
+              for (var dy = -2; dy <= 2; dy++) {
+                var nx = ix2 + dx, ny = iy2 + dy;
+                if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                  if (!visited[ny * w + nx]) { nearSubject = true; break; }
+                }
+              }
+              if (nearSubject) break;
+            }
+            px[pi+3] = nearSubject ? 80 : 0;
+          }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        resolve(c.toDataURL('image/png'));
+      };
+      img.src = imgDataUrl;
+    });
   }
 
   // ── DOM refs ──────────────────────────────────────────────────────
@@ -43,11 +151,13 @@
     resultContent.innerHTML = '';
     resultContent.className = '';
 
+    // Show with checkerboard bg so transparency is visible
     var wrap = document.createElement('div');
     wrap.className = 'result-image-wrap';
     var img = document.createElement('img');
     img.src = imageDataUrl;
     img.alt = 'Generated AR filter';
+    img.style.background = 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50% / 20px 20px';
     wrap.appendChild(img);
 
     var useInAr = document.createElement('button');
@@ -122,8 +232,13 @@
     try {
       var arPrompt = AR_PROMPT_PREFIX + prompt;
       var blob = await callHuggingFaceImage(arPrompt);
-      var dataUrl = await blobToDataUrl(blob);
-      showResult(dataUrl);
+      var rawDataUrl = await blobToDataUrl(blob);
+
+      // Remove background to create transparent PNG
+      generateBtn.querySelector('.generate-text').textContent = 'Removing background...';
+      var cleanDataUrl = await removeBackground(rawDataUrl);
+
+      showResult(cleanDataUrl);
     } catch (err) {
       showError(err.message || 'Could not generate image.');
       setLoading(false);

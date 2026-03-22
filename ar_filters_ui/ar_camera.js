@@ -74,70 +74,6 @@ function getGetUserMedia() {
     return null;
 }
 
-// ── Background removal ──────────────────────────────────────────────────
-// Samples edge pixels to find the background color, then makes all
-// pixels within a tolerance of that color transparent.
-function removeBackground(img) {
-    const c = document.createElement('canvas');
-    const w = img.naturalWidth || img.width;
-    const h = img.naturalHeight || img.height;
-    c.width = w;
-    c.height = h;
-    const ctx = c.getContext('2d');
-    ctx.drawImage(img, 0, 0, w, h);
-    const data = ctx.getImageData(0, 0, w, h);
-    const px = data.data;
-
-    // Sample edge pixels (top row, bottom row, left col, right col)
-    const samples = [];
-    for (let x = 0; x < w; x += Math.max(1, Math.floor(w / 30))) {
-        // top row
-        const ti = (x) * 4;
-        samples.push([px[ti], px[ti+1], px[ti+2]]);
-        // bottom row
-        const bi = ((h - 1) * w + x) * 4;
-        samples.push([px[bi], px[bi+1], px[bi+2]]);
-    }
-    for (let y = 0; y < h; y += Math.max(1, Math.floor(h / 30))) {
-        // left col
-        const li = (y * w) * 4;
-        samples.push([px[li], px[li+1], px[li+2]]);
-        // right col
-        const ri = (y * w + w - 1) * 4;
-        samples.push([px[ri], px[ri+1], px[ri+2]]);
-    }
-
-    // Find median color of edge pixels
-    const sr = samples.map(s => s[0]).sort((a,b) => a-b);
-    const sg = samples.map(s => s[1]).sort((a,b) => a-b);
-    const sb = samples.map(s => s[2]).sort((a,b) => a-b);
-    const mid = Math.floor(samples.length / 2);
-    const bgR = sr[mid], bgG = sg[mid], bgB = sb[mid];
-
-    // Remove pixels close to background color
-    const tolerance = 60;
-    for (let i = 0; i < px.length; i += 4) {
-        const dr = px[i] - bgR;
-        const dg = px[i+1] - bgG;
-        const db = px[i+2] - bgB;
-        const dist = Math.sqrt(dr*dr + dg*dg + db*db);
-        if (dist < tolerance) {
-            px[i+3] = 0;  // fully transparent
-        } else if (dist < tolerance * 1.5) {
-            // Feather the edges for smoother blending
-            const fade = (dist - tolerance) / (tolerance * 0.5);
-            px[i+3] = Math.round(255 * fade);
-        }
-    }
-
-    ctx.putImageData(data, 0, 0);
-
-    // Return a new image from the processed canvas
-    const processed = new Image();
-    processed.src = c.toDataURL('image/png');
-    return processed;
-}
-
 // ── Load AR source image + mask-shaped rotatable 3D preview ─────────────
 function loadArImage() {
     const dataUrl = sessionStorage.getItem('arGeneratedImage');
@@ -147,22 +83,10 @@ function loadArImage() {
     }
     const img = new Image();
     img.onload = () => {
-        // Remove background to make it a proper mask
-        const processed = removeBackground(img);
-        processed.onload = () => {
-            arImage = processed;
-            arSourcePreview.innerHTML = '';
-            // Show the processed (transparent bg) version in preview
-            buildRotatablePreview(processed.src);
-            setStatus('AR image loaded (background removed). Start the camera to begin.', 'success');
-        };
-        // If processed image is already loaded (dataURL is synchronous in some browsers)
-        if (processed.complete && processed.naturalWidth > 0) {
-            arImage = processed;
-            arSourcePreview.innerHTML = '';
-            buildRotatablePreview(processed.src);
-            setStatus('AR image loaded (background removed). Start the camera to begin.', 'success');
-        }
+        arImage = img;
+        arSourcePreview.innerHTML = '';
+        buildRotatablePreview(dataUrl);
+        setStatus('AR image loaded. Start the camera to begin.', 'success');
     };
     img.onerror = () => {
         arSourcePreview.innerHTML = '<div class="preview-placeholder">Failed to load AR image.</div>';

@@ -242,6 +242,11 @@
         0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
+.ar-rotate-front,
+.ar-rotate-back {
+    background: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+}
+
 .ar-rotate-front {
     z-index: 2;
 }
