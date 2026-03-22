@@ -279,23 +279,34 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const faceH = maxY - minY;
     if (faceW < 5 || faceH < 5) return;
 
-    // Expand slightly
-    const padX = faceW * 0.05;
-    const padY = faceH * 0.05;
+    // Face center
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+
+    // Expand the clip path outward from center by 35% so that head
+    // rotation doesn't expose skin at the edges.  Since the AR image
+    // has a transparent background, the extra area is invisible.
+    const expandFactor = 1.35;
 
     arCtx.save();
-    arCtx.globalAlpha = 0.75;
+    arCtx.globalAlpha = 0.8;
 
-    // Clip to face oval
+    // Build expanded clip path
     arCtx.beginPath();
-    arCtx.moveTo(ovalPts[0].x, ovalPts[0].y);
-    for (let i = 1; i < ovalPts.length; i++) {
-        arCtx.lineTo(ovalPts[i].x, ovalPts[i].y);
+    for (let i = 0; i <= ovalPts.length; i++) {
+        const pt = ovalPts[i % ovalPts.length];
+        const ex = cx + (pt.x - cx) * expandFactor;
+        const ey = cy + (pt.y - cy) * expandFactor;
+        if (i === 0) arCtx.moveTo(ex, ey);
+        else arCtx.lineTo(ex, ey);
     }
     arCtx.closePath();
     arCtx.clip();
 
-    // Draw AR image stretched to face bounding box
+    // Draw the AR image to a larger region (30% padding each side)
+    // so when the head turns there's image content to show
+    const padX = faceW * 0.30;
+    const padY = faceH * 0.20;
     arCtx.drawImage(arImage,
         minX - padX, minY - padY,
         faceW + padX * 2, faceH + padY * 2);
