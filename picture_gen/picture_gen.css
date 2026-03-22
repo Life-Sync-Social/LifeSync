@@ -254,13 +254,13 @@ body::before {
     .generate-btn { width: 100%; justify-content: center; }
     .content-header h2 { font-size: 28px; }
     .main-content { margin: 15px; padding: 20px; }
-    .server-bar-inner { flex-direction: column; }
-    .server-connect-btn { width: 100%; }
+    .token-bar { flex-direction: column; }
+    .token-save-btn { width: 100%; }
 }
 
-/* Server connection bar (shown on GitHub Pages) */
-.server-bar {
-    margin-bottom: 20px;
+/* Token setup bar */
+.token-setup {
+    margin-bottom: 24px;
     padding: 16px 20px;
     background: linear-gradient(135deg, rgba(255, 248, 252, 0.98) 0%, rgba(255, 240, 245, 0.98) 100%);
     border: 2px solid rgba(255, 23, 68, 0.2);
@@ -268,24 +268,32 @@ body::before {
     max-width: 900px;
     margin-left: auto;
     margin-right: auto;
-    margin-bottom: 24px;
     box-shadow: 0 4px 16px rgba(255, 23, 68, 0.1);
 }
 
-.server-bar-inner {
+.token-setup.connected {
+    border-color: rgba(21, 87, 36, 0.3);
+    background: linear-gradient(135deg, rgba(236, 253, 243, 0.98) 0%, rgba(243, 255, 248, 0.98) 100%);
+}
+
+.token-bar {
     display: flex;
     gap: 12px;
     align-items: center;
 }
 
-.server-bar label {
+.token-bar label {
     font-weight: 700;
     color: #b0132b;
     white-space: nowrap;
     font-size: 14px;
 }
 
-.server-input {
+.token-setup.connected .token-bar label {
+    color: #155724;
+}
+
+.token-input {
     flex: 1;
     padding: 10px 14px;
     border: 2px solid rgba(255, 23, 68, 0.2);
@@ -296,12 +304,12 @@ body::before {
     color: #333;
 }
 
-.server-input:focus {
+.token-input:focus {
     outline: none;
     border-color: #ff1744;
 }
 
-.server-connect-btn {
+.token-save-btn {
     padding: 10px 20px;
     border-radius: 10px;
     border: none;
@@ -313,16 +321,25 @@ body::before {
     white-space: nowrap;
 }
 
-.server-connect-btn:hover {
+.token-save-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 23, 68, 0.3);
 }
 
-.server-status {
+.token-status {
     font-size: 13px;
     font-weight: 600;
     white-space: nowrap;
+    color: #155724;
 }
 
-.server-status.connected { color: #155724; }
-.server-status.error { color: #721c24; }
+.token-hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #888;
+}
+
+.token-hint a {
+    color: #b0132b;
+    text-decoration: underline;
+}
