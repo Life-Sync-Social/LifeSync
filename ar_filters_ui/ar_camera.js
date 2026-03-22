@@ -280,10 +280,13 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const imgW = arImage.naturalWidth || arImage.width;
     const imgH = arImage.naturalHeight || arImage.height;
 
-    // Convert all grid landmarks to display coords
-    const rawPts = [];
+    // Convert grid landmarks to RAW (non-mirrored) coords for UV computation
+    // and DISPLAY (mirrored) coords for destination positions
+    const rawPts = [];   // non-mirrored, for UV
+    const dstPts = [];   // mirrored, for drawing position
     for (let r = 0; r < G_ROWS; r++) {
         rawPts[r] = [];
+        dstPts[r] = [];
         for (let c = 0; c < G_COLS; c++) {
             const lm = face[FACE_GRID[r][c]];
             let x, y;
@@ -293,12 +296,12 @@ function drawArOverlay(landmarks, displayW, displayH) {
                 x = lm.x * rw + ox;
                 y = lm.y * rh + oy;
             }
-            if (isMirror) x = displayW - x;
             rawPts[r][c] = { x, y };
+            dstPts[r][c] = { x: isMirror ? displayW - x : x, y };
         }
     }
 
-    // Find face center from all points
+    // Compute face center and bbox from RAW points (for UV)
     let sumX = 0, sumY = 0, cnt = 0;
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (let r = 0; r < G_ROWS; r++) {
@@ -311,47 +314,39 @@ function drawArOverlay(landmarks, displayW, displayH) {
             if (p.y > maxY) maxY = p.y;
         }
     }
-    const cx = sumX / cnt;
-    const cy = sumY / cnt;
     const bw = maxX - minX || 1;
     const bh = maxY - minY || 1;
 
-    // Push all points outward from center by EXPAND factor
-    // This expands coverage beyond the landmark positions
-    const pts = [];
+    // Expand destination points outward from their center
+    let dSumX = 0, dSumY = 0;
     for (let r = 0; r < G_ROWS; r++) {
-        pts[r] = [];
         for (let c = 0; c < G_COLS; c++) {
-            const p = rawPts[r][c];
-            pts[r][c] = {
-                x: cx + (p.x - cx) * (1 + EXPAND),
-                y: cy + (p.y - cy) * (1 + EXPAND),
+            dSumX += dstPts[r][c].x;
+            dSumY += dstPts[r][c].y;
+        }
+    }
+    const dcx = dSumX / cnt;
+    const dcy = dSumY / cnt;
+
+    const expandedDst = [];
+    for (let r = 0; r < G_ROWS; r++) {
+        expandedDst[r] = [];
+        for (let c = 0; c < G_COLS; c++) {
+            const p = dstPts[r][c];
+            expandedDst[r][c] = {
+                x: dcx + (p.x - dcx) * (1 + EXPAND),
+                y: dcy + (p.y - dcy) * (1 + EXPAND),
             };
         }
     }
 
-    // Recompute expanded bbox
-    let eMinX = Infinity, eMaxX = -Infinity, eMinY = Infinity, eMaxY = -Infinity;
-    for (let r = 0; r < G_ROWS; r++) {
-        for (let c = 0; c < G_COLS; c++) {
-            const p = pts[r][c];
-            if (p.x < eMinX) eMinX = p.x;
-            if (p.x > eMaxX) eMaxX = p.x;
-            if (p.y < eMinY) eMinY = p.y;
-            if (p.y > eMaxY) eMaxY = p.y;
-        }
-    }
-    const ebw = eMaxX - eMinX || 1;
-    const ebh = eMaxY - eMinY || 1;
-
-    // Compute UV for each vertex based on position in expanded bbox
+    // UV from raw (non-mirrored) positions normalised to face bbox
     const uvs = [];
     for (let r = 0; r < G_ROWS; r++) {
         uvs[r] = [];
         for (let c = 0; c < G_COLS; c++) {
-            let u = (pts[r][c].x - eMinX) / ebw;
-            const v = (pts[r][c].y - eMinY) / ebh;
-            if (isMirror) u = 1 - u;
+            const u = (rawPts[r][c].x - minX) / bw;
+            const v = (rawPts[r][c].y - minY) / bh;
             uvs[r][c] = { u: u * imgW, v: v * imgH };
         }
     }
@@ -360,8 +355,8 @@ function drawArOverlay(landmarks, displayW, displayH) {
 
     for (let r = 0; r < G_ROWS - 1; r++) {
         for (let c = 0; c < G_COLS - 1; c++) {
-            const d00 = pts[r][c],     d10 = pts[r][c+1];
-            const d01 = pts[r+1][c],   d11 = pts[r+1][c+1];
+            const d00 = expandedDst[r][c],     d10 = expandedDst[r][c+1];
+            const d01 = expandedDst[r+1][c],   d11 = expandedDst[r+1][c+1];
             const s00 = uvs[r][c],     s10 = uvs[r][c+1];
             const s01 = uvs[r+1][c],   s11 = uvs[r+1][c+1];
 

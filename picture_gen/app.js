@@ -11,8 +11,8 @@
   const HF_IMAGE_MODEL = 'black-forest-labs/FLUX.1-schnell';
   const HF_API_URL = 'https://router.huggingface.co/hf-inference/models/' + HF_IMAGE_MODEL;
 
-  // Prompt: generate close-up face paint that fills the whole image
-  const AR_PROMPT_PREFIX = 'Extreme close-up of face paint design filling the entire image edge to edge, no background visible, no negative space, the painted pattern covers every pixel of the frame, front view of a face completely covered in detailed ';
+  // Prompt: generate close-up face paint, face only, no neck
+  const AR_PROMPT_PREFIX = 'Extreme close-up of face paint design covering only the face from forehead to chin, no neck no shoulders no body, just the face filling the entire square frame edge to edge, front view, symmetrical, detailed ';
 
   // ── API key (obfuscated) ──────────────────────────────────────────
   function _k() {
