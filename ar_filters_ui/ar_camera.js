@@ -250,61 +250,10 @@ const INTERIOR = [
 
 const ALL_IDX = [...FACE_OVAL, ...INTERIOR];
 
-// ── Delaunay triangulation (Bowyer-Watson) ──────────────────────────────
-function delaunay(pts) {
-    const n = pts.length;
-    if (n < 3) return [];
-    const stA = [-10, -10], stB = [20, -10], stC = [5, 20];
-    const all = [...pts, stA, stB, stC];
-    let tris = [[n, n + 1, n + 2]];
-
-    for (let i = 0; i < n; i++) {
-        const p = all[i];
-        const bad = [];
-        for (let t = 0; t < tris.length; t++) {
-            if (inCC(p, all, tris[t])) bad.push(t);
-        }
-        const edges = [];
-        for (const bi of bad) {
-            const tri = tris[bi];
-            for (let e = 0; e < 3; e++) {
-                const a = tri[e], b = tri[(e + 1) % 3];
-                let shared = false;
-                for (const bj of bad) {
-                    if (bj === bi) continue;
-                    const t2 = tris[bj];
-                    if (t2.includes(a) && t2.includes(b)) { shared = true; break; }
-                }
-                if (!shared) edges.push([a, b]);
-            }
-        }
-        const bs = new Set(bad);
-        tris = tris.filter((_, k) => !bs.has(k));
-        for (const [a, b] of edges) tris.push([i, a, b]);
-    }
-    return tris.filter(t => t[0] < n && t[1] < n && t[2] < n);
-}
-
-function inCC(p, pts, tri) {
-    const [ax, ay] = pts[tri[0]], [bx, by] = pts[tri[1]], [cx, cy] = pts[tri[2]];
-    const dx = ax - p[0], dy = ay - p[1];
-    const ex = bx - p[0], ey = by - p[1];
-    const fx = cx - p[0], fy = cy - p[1];
-    return (dx * (ey * (fx*fx+fy*fy) - fy * (ex*ex+ey*ey))
-          - dy * (ex * (fx*fx+fy*fy) - fx * (ex*ex+ey*ey))
-          + (dx*dx+dy*dy) * (ex * fy - ey * fx)) > 0;
-}
-
-// ── Precompute triangulation from a "neutral" UV layout ─────────────────
-// We triangulate once on normalised positions and reuse the topology.
-let cachedTris = null;
-function getTriangulation(uvPts) {
-    if (cachedTris) return cachedTris;
-    cachedTris = delaunay(uvPts);
-    return cachedTris;
-}
-
 // ── Draw AR overlay on face ─────────────────────────────────────────────
+// Draws the AR image clipped to the face oval, stretched to the face
+// bounding box. The face oval path from landmarks gives natural curvature
+// as the user moves their head.
 function drawArOverlay(landmarks, displayW, displayH) {
     arCtx.clearRect(0, 0, displayW, displayH);
     if (!arImage || !landmarks.length) return;
@@ -313,75 +262,52 @@ function drawArOverlay(landmarks, displayW, displayH) {
     if (!m) return;
 
     const face = landmarks[0];
-    const imgW = arImage.naturalWidth  || arImage.width;
-    const imgH = arImage.naturalHeight || arImage.height;
 
-    // Get display-space positions for our mesh points
-    const dstPts = [];
-    for (const idx of ALL_IDX) {
-        const pt = face[idx];
-        if (!pt) { dstPts.push([displayW / 2, displayH / 2]); continue; }
-        dstPts.push([pt.x * m.rw + m.ox, pt.y * m.rh + m.oy]);
-    }
-
-    // Compute face bounding box for UV mapping
+    // Convert face oval landmarks to display coordinates
+    const ovalPts = [];
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (let i = 0; i < FACE_OVAL.length; i++) {
-        const [x, y] = dstPts[i];
+    for (const idx of FACE_OVAL) {
+        const pt = face[idx];
+        if (!pt) continue;
+        const x = pt.x * m.rw + m.ox;
+        const y = pt.y * m.rh + m.oy;
+        ovalPts.push({ x, y });
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
         if (y < minY) minY = y;
         if (y > maxY) maxY = y;
     }
-    const bw = maxX - minX || 1;
-    const bh = maxY - minY || 1;
 
-    // UV coords: map each point to 0..1 within face bounding box
-    const uvPts = [];
-    for (const [x, y] of dstPts) {
-        uvPts.push([(x - minX) / bw, (y - minY) / bh]);
+    if (ovalPts.length < 3) return;
+
+    const faceW = maxX - minX;
+    const faceH = maxY - minY;
+    if (faceW < 5 || faceH < 5) return;
+
+    // Expand bounding box slightly so the image covers the full face
+    const padX = faceW * 0.05;
+    const padY = faceH * 0.05;
+    const drawX = minX - padX;
+    const drawY = minY - padY;
+    const drawW = faceW + padX * 2;
+    const drawH = faceH + padY * 2;
+
+    arCtx.save();
+    arCtx.globalAlpha = 0.75;
+
+    // Clip to the face oval shape using landmark points
+    arCtx.beginPath();
+    arCtx.moveTo(ovalPts[0].x, ovalPts[0].y);
+    for (let i = 1; i < ovalPts.length; i++) {
+        arCtx.lineTo(ovalPts[i].x, ovalPts[i].y);
     }
+    arCtx.closePath();
+    arCtx.clip();
 
-    const tris = getTriangulation(uvPts);
+    // Draw the AR image stretched to the face bounding box
+    arCtx.drawImage(arImage, drawX, drawY, drawW, drawH);
 
-    arCtx.globalAlpha = 0.8;
-
-    for (const [i0, i1, i2] of tris) {
-        // Destination triangle (display coords)
-        const [dx0, dy0] = dstPts[i0];
-        const [dx1, dy1] = dstPts[i1];
-        const [dx2, dy2] = dstPts[i2];
-
-        // Source triangle (image pixel coords from UV)
-        const sx0 = uvPts[i0][0] * imgW, sy0 = uvPts[i0][1] * imgH;
-        const sx1 = uvPts[i1][0] * imgW, sy1 = uvPts[i1][1] * imgH;
-        const sx2 = uvPts[i2][0] * imgW, sy2 = uvPts[i2][1] * imgH;
-
-        // Affine warp: source triangle -> dest triangle
-        const denom = sx0 * (sy1 - sy2) + sx1 * (sy2 - sy0) + sx2 * (sy0 - sy1);
-        if (Math.abs(denom) < 0.01) continue;
-        const id = 1 / denom;
-
-        const a = (dx0 * (sy1 - sy2) + dx1 * (sy2 - sy0) + dx2 * (sy0 - sy1)) * id;
-        const b = (dx0 * (sx2 - sx1) + dx1 * (sx0 - sx2) + dx2 * (sx1 - sx0)) * id;
-        const c = (dx0 * (sx1*sy2 - sx2*sy1) + dx1 * (sx2*sy0 - sx0*sy2) + dx2 * (sx0*sy1 - sx1*sy0)) * id;
-        const d = (dy0 * (sy1 - sy2) + dy1 * (sy2 - sy0) + dy2 * (sy0 - sy1)) * id;
-        const e = (dy0 * (sx2 - sx1) + dy1 * (sx0 - sx2) + dy2 * (sx1 - sx0)) * id;
-        const f = (dy0 * (sx1*sy2 - sx2*sy1) + dy1 * (sx2*sy0 - sx0*sy2) + dy2 * (sx0*sy1 - sx1*sy0)) * id;
-
-        arCtx.save();
-        arCtx.beginPath();
-        arCtx.moveTo(dx0, dy0);
-        arCtx.lineTo(dx1, dy1);
-        arCtx.lineTo(dx2, dy2);
-        arCtx.closePath();
-        arCtx.clip();
-        arCtx.setTransform(a, d, b, e, c, f);
-        arCtx.drawImage(arImage, 0, 0);
-        arCtx.restore();
-    }
-
-    // Reset transform after all triangles
+    arCtx.restore();
     arCtx.setTransform(1, 0, 0, 1, 0, 0);
     arCtx.globalAlpha = 1.0;
 }
@@ -468,7 +394,6 @@ async function startCamera() {
         if (actual === 'user' || actual === 'environment') { facingMode = actual; updateMirror(); }
 
         setControls(true);
-        cachedTris = null;  // re-triangulate
         setStatus('Camera ready. Tracking landmarks...', 'success');
         startLoop();
     } catch (err) {
@@ -518,7 +443,7 @@ function capturePhoto() {
 
 // ── Event listeners ─────────────────────────────────────────────────────
 startBtn.addEventListener('click', () => void startCamera());
-switchBtn.addEventListener('click', () => { facingMode = facingMode === 'user' ? 'environment' : 'user'; cachedTris = null; void startCamera(); });
+switchBtn.addEventListener('click', () => { facingMode = facingMode === 'user' ? 'environment' : 'user'; void startCamera(); });
 captureBtn.addEventListener('click', () => capturePhoto());
 toggleLMBtn.addEventListener('click', () => {
     showLandmarks = !showLandmarks;
@@ -527,7 +452,7 @@ toggleLMBtn.addEventListener('click', () => {
 });
 stopBtn.addEventListener('click', () => { stopCurrentStream(); setControls(false); setStatus('Stopped.', 'info'); });
 window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t => t.stop()); });
-window.addEventListener('resize', () => { cachedTris = null; });
+window.addEventListener('resize', () => {});
 
 // ── Init ────────────────────────────────────────────────────────────────
 loadArImage();
