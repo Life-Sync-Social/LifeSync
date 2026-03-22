@@ -196,41 +196,31 @@ function syncCanvasSize(canvas) {
     return { w, h };
 }
 
-// ── Video-to-display coordinate mapping ─────────────────────────────────
-function getVideoMapping(displayW, displayH) {
-    const vw = videoEl.videoWidth;
-    const vh = videoEl.videoHeight;
-    if (!vw || !vh) return null;
-    // object-fit: cover
-    const scale = Math.max(displayW / vw, displayH / vh);
-    return {
-        rw: vw * scale,
-        rh: vh * scale,
-        ox: (displayW - vw * scale) / 2,
-        oy: (displayH - vh * scale) / 2,
-    };
-}
-
 // ── Drawing: Landmark dots ──────────────────────────────────────────────
 function drawLandmarkDots(landmarks, displayW, displayH) {
     landmarkCtx.clearRect(0, 0, displayW, displayH);
     if (!showLandmarks || !landmarks.length) return;
-    const m = getVideoMapping(displayW, displayH);
-    if (!m) return;
+
+    const vw = videoEl.videoWidth;
+    const vh = videoEl.videoHeight;
+    if (!vw || !vh) return;
+
+    const scale = Math.max(displayW / vw, displayH / vh);
+    const rw = vw * scale;
+    const rh = vh * scale;
+    const ox = (displayW - rw) / 2;
+    const oy = (displayH - rh) / 2;
 
     landmarkCtx.fillStyle = 'rgba(53, 223, 164, 0.85)';
-    landmarkCtx.shadowColor = 'rgba(53, 223, 164, 0.5)';
-    landmarkCtx.shadowBlur = 3;
-    const r = Math.max(1.2, Math.min(2, displayW / 450));
+    const r = Math.max(1.2, Math.min(2.5, displayW / 400));
 
     for (const face of landmarks) {
         for (const pt of face) {
             landmarkCtx.beginPath();
-            landmarkCtx.arc(pt.x * m.rw + m.ox, pt.y * m.rh + m.oy, r, 0, Math.PI * 2);
+            landmarkCtx.arc(pt.x * rw + ox, pt.y * rh + oy, r, 0, Math.PI * 2);
             landmarkCtx.fill();
         }
     }
-    landmarkCtx.shadowBlur = 0;
 }
 
 // ── Face oval silhouette indices (MediaPipe canonical mesh) ─────────────
@@ -251,15 +241,20 @@ const INTERIOR = [
 const ALL_IDX = [...FACE_OVAL, ...INTERIOR];
 
 // ── Draw AR overlay on face ─────────────────────────────────────────────
-// Draws the AR image clipped to the face oval, stretched to the face
-// bounding box. The face oval path from landmarks gives natural curvature
-// as the user moves their head.
 function drawArOverlay(landmarks, displayW, displayH) {
     arCtx.clearRect(0, 0, displayW, displayH);
     if (!arImage || !landmarks.length) return;
 
-    const m = getVideoMapping(displayW, displayH);
-    if (!m) return;
+    const vw = videoEl.videoWidth;
+    const vh = videoEl.videoHeight;
+    if (!vw || !vh) return;
+
+    // object-fit: cover mapping
+    const scale = Math.max(displayW / vw, displayH / vh);
+    const rw = vw * scale;
+    const rh = vh * scale;
+    const ox = (displayW - rw) / 2;
+    const oy = (displayH - rh) / 2;
 
     const face = landmarks[0];
 
@@ -269,8 +264,8 @@ function drawArOverlay(landmarks, displayW, displayH) {
     for (const idx of FACE_OVAL) {
         const pt = face[idx];
         if (!pt) continue;
-        const x = pt.x * m.rw + m.ox;
-        const y = pt.y * m.rh + m.oy;
+        const x = pt.x * rw + ox;
+        const y = pt.y * rh + oy;
         ovalPts.push({ x, y });
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
@@ -284,18 +279,14 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const faceH = maxY - minY;
     if (faceW < 5 || faceH < 5) return;
 
-    // Expand bounding box slightly so the image covers the full face
+    // Expand slightly
     const padX = faceW * 0.05;
     const padY = faceH * 0.05;
-    const drawX = minX - padX;
-    const drawY = minY - padY;
-    const drawW = faceW + padX * 2;
-    const drawH = faceH + padY * 2;
 
     arCtx.save();
     arCtx.globalAlpha = 0.75;
 
-    // Clip to the face oval shape using landmark points
+    // Clip to face oval
     arCtx.beginPath();
     arCtx.moveTo(ovalPts[0].x, ovalPts[0].y);
     for (let i = 1; i < ovalPts.length; i++) {
@@ -304,12 +295,12 @@ function drawArOverlay(landmarks, displayW, displayH) {
     arCtx.closePath();
     arCtx.clip();
 
-    // Draw the AR image stretched to the face bounding box
-    arCtx.drawImage(arImage, drawX, drawY, drawW, drawH);
+    // Draw AR image stretched to face bounding box
+    arCtx.drawImage(arImage,
+        minX - padX, minY - padY,
+        faceW + padX * 2, faceH + padY * 2);
 
     arCtx.restore();
-    arCtx.setTransform(1, 0, 0, 1, 0, 0);
-    arCtx.globalAlpha = 1.0;
 }
 
 // ── Detection loop ──────────────────────────────────────────────────────
