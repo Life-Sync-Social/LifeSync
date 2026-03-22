@@ -254,4 +254,75 @@ body::before {
     .generate-btn { width: 100%; justify-content: center; }
     .content-header h2 { font-size: 28px; }
     .main-content { margin: 15px; padding: 20px; }
+    .server-bar-inner { flex-direction: column; }
+    .server-connect-btn { width: 100%; }
 }
+
+/* Server connection bar (shown on GitHub Pages) */
+.server-bar {
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(255, 248, 252, 0.98) 0%, rgba(255, 240, 245, 0.98) 100%);
+    border: 2px solid rgba(255, 23, 68, 0.2);
+    border-radius: 16px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 16px rgba(255, 23, 68, 0.1);
+}
+
+.server-bar-inner {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.server-bar label {
+    font-weight: 700;
+    color: #b0132b;
+    white-space: nowrap;
+    font-size: 14px;
+}
+
+.server-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 2px solid rgba(255, 23, 68, 0.2);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: monospace;
+    background: #fff;
+    color: #333;
+}
+
+.server-input:focus {
+    outline: none;
+    border-color: #ff1744;
+}
+
+.server-connect-btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #ff1744, #ff4d6d);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.server-connect-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 23, 68, 0.3);
+}
+
+.server-status {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.server-status.connected { color: #155724; }
+.server-status.error { color: #721c24; }

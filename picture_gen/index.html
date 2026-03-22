@@ -21,6 +21,15 @@
                 <h2>Generate an image for AR</h2>
             </div>
 
+            <div id="serverBar" class="server-bar" style="display:none;">
+                <div class="server-bar-inner">
+                    <label for="serverInput">API Server:</label>
+                    <input type="text" id="serverInput" class="server-input" placeholder="http://192.168.x.x:5501">
+                    <button id="serverConnectBtn" class="server-connect-btn">Connect</button>
+                    <span id="serverStatus" class="server-status"></span>
+                </div>
+            </div>
+
             <div class="prompt-section">
                 <div class="prompt-row">
                     <input

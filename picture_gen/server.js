@@ -205,7 +205,21 @@ app.post('/api/generate-image', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Picture Generator listening on http://localhost:${PORT}`);
+const HOST = config.HOST || process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  console.log(`Picture Generator listening on http://${HOST}:${PORT}`);
   console.log(`Open http://localhost:${PORT}/index.html to use the app`);
+  // Show LAN addresses for iPad / mobile testing
+  if (HOST === '0.0.0.0') {
+    const os = require('os');
+    const nets = os.networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        if (net.family === 'IPv4' && !net.internal) {
+          console.log(`  LAN: http://${net.address}:${PORT}`);
+        }
+      }
+    }
+  }
 });

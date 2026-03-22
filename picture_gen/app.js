@@ -7,6 +7,82 @@
     // return;
   }
 
+  // ── API server URL ────────────────────────────────────────────────
+  // When served from GitHub Pages (or any non-localhost origin), the
+  // image-generation API lives on your local machine.  Set the server
+  // address in the browser console with:
+  //   sessionStorage.setItem('apiServer', 'http://192.168.x.x:5501')
+  // Or pass it as a ?server= query param.
+  //
+  // When running on localhost the relative /api/ path works directly.
+  function getApiBase() {
+    const params = new URLSearchParams(window.location.search);
+    const fromParam   = params.get('server');
+    const fromStorage = sessionStorage.getItem('apiServer');
+    if (fromParam) {
+      sessionStorage.setItem('apiServer', fromParam);
+      return fromParam;
+    }
+    if (fromStorage) return fromStorage;
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return '';
+    // Prompt the user for their server address on first visit from Pages
+    return '';
+  }
+  let API_BASE = getApiBase();
+
+  // ── Server connection bar (shown when not on localhost) ────────────
+  const serverBar       = document.getElementById('serverBar');
+  const serverInput     = document.getElementById('serverInput');
+  const serverConnectBtn = document.getElementById('serverConnectBtn');
+  const serverStatusEl  = document.getElementById('serverStatus');
+
+  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+  if (!isLocal && serverBar) {
+    serverBar.style.display = 'block';
+    if (API_BASE) {
+      serverInput.value = API_BASE;
+      serverStatusEl.textContent = 'Connected';
+      serverStatusEl.className = 'server-status connected';
+    }
+  }
+
+  function connectToServer() {
+    let addr = (serverInput.value || '').trim();
+    if (!addr) return;
+    // Strip trailing slash
+    addr = addr.replace(/\/+$/, '');
+    // Add http:// if missing
+    if (!/^https?:\/\//i.test(addr)) addr = 'http://' + addr;
+    sessionStorage.setItem('apiServer', addr);
+    API_BASE = addr;
+    serverStatusEl.textContent = 'Checking...';
+    serverStatusEl.className = 'server-status';
+
+    // Quick health check
+    fetch(addr + '/api/generate-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: '' }),
+    }).then(r => {
+      // Even a 400 means the server is reachable
+      serverStatusEl.textContent = 'Connected';
+      serverStatusEl.className = 'server-status connected';
+    }).catch(() => {
+      serverStatusEl.textContent = 'Cannot reach server';
+      serverStatusEl.className = 'server-status error';
+    });
+  }
+
+  if (serverConnectBtn) {
+    serverConnectBtn.addEventListener('click', connectToServer);
+  }
+  if (serverInput) {
+    serverInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') connectToServer();
+    });
+  }
+
   const promptInput = document.getElementById('promptInput');   
   const generateBtn = document.getElementById('generateBtn');
   const resultContent = document.getElementById('resultContent');
@@ -66,7 +142,7 @@
     showPlaceholder();
 
     try {
-      const res = await fetch('/api/generate-image', {
+      const res = await fetch(API_BASE + '/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
