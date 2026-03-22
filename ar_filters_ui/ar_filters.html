@@ -54,6 +54,12 @@
             <!-- Filters Display Area -->
             <div id="filtersDisplay" class="filters-display">
                 <div class="dashboard-grid">
+                    <div class="dashboard-card" data-link="ar_camera.html">
+                        <div class="card-icon">📸</div>
+                        <h3 class="card-title">AR Camera</h3>
+                        <p class="card-description">Live camera with facial landmark tracking and AR image overlay</p>
+                    </div>
+
                     <div class="dashboard-card">
                         <div class="card-icon">💄</div>
                         <h3 class="card-title">Beauty Filters</h3>
@@ -95,11 +101,12 @@
         const filtersDisplay = document.getElementById('filtersDisplay');
         const arGeneratedImage = sessionStorage.getItem('arGeneratedImage');
         if (arGeneratedImage) {
-            sessionStorage.removeItem('arGeneratedImage');
+            // Keep the image in sessionStorage so ar_camera.js can read it
             const grid = filtersDisplay.querySelector('.dashboard-grid');
             if (grid) {
                 const card = document.createElement('div');
                 card.className = 'dashboard-card generated-image-card';
+                card.dataset.link = 'ar_camera.html';
                 const thumb = document.createElement('div');
                 thumb.className = 'card-icon generated-thumb';
                 const img = document.createElement('img');
@@ -108,10 +115,10 @@
                 thumb.appendChild(img);
                 const title = document.createElement('h3');
                 title.className = 'card-title';
-                title.textContent = 'Generated image';
+                title.textContent = 'Use in AR Camera';
                 const desc = document.createElement('p');
                 desc.className = 'card-description';
-                desc.textContent = 'Use your Picture Generator image as AR filter';
+                desc.textContent = 'Apply your generated image as an AR face filter';
                 card.appendChild(thumb);
                 card.appendChild(title);
                 card.appendChild(desc);
@@ -143,10 +150,14 @@
         // Filter Options Toggle
         const defaultFiltersBtn = document.getElementById('defaultFiltersBtn');
         const savedFiltersBtn = document.getElementById('savedFiltersBtn');
-        const filtersDisplay = document.getElementById('filtersDisplay');
 
         const defaultFiltersHTML = `
             <div class="dashboard-grid">
+                <div class="dashboard-card" data-link="ar_camera.html">
+                    <div class="card-icon">📸</div>
+                    <h3 class="card-title">AR Camera</h3>
+                    <p class="card-description">Live camera with facial landmark tracking and AR image overlay</p>
+                </div>
                 <div class="dashboard-card">
                     <div class="card-icon">💄</div>
                     <h3 class="card-title">Beauty Filters</h3>
@@ -204,12 +215,18 @@
             const dashboardCards = document.querySelectorAll('.dashboard-card');
             dashboardCards.forEach(card => {
                 card.addEventListener('click', function() {
-                    if (this.classList.contains('generated-image-card')) {
-                        alert('Applying generated filter – AR viewer coming soon!');
-                    } else {
-                        const title = this.querySelector('.card-title').textContent;
-                        alert('Applying filter: ' + title + '\n\n(Feature coming soon!)');
+                    const link = this.dataset.link;
+                    if (link) {
+                        window.location.href = link;
+                        return;
                     }
+                    if (this.classList.contains('generated-image-card')) {
+                        // Redirect to AR camera with the generated image
+                        window.location.href = 'ar_camera.html';
+                        return;
+                    }
+                    const title = this.querySelector('.card-title').textContent;
+                    alert('Applying filter: ' + title + '\n\n(Feature coming soon!)');
                 });
             });
         }

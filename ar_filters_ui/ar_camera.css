@@ -1,0 +1,234 @@
+/* AR Camera Page Styles */
+
+.content-subtitle {
+    margin-top: 12px;
+    font-size: 16px;
+    color: #6b6b6b;
+    text-align: center;
+}
+
+.status-banner {
+    margin: 0 auto 24px auto;
+    max-width: 960px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid transparent;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.status-banner.info {
+    background: rgba(209, 236, 241, 0.8);
+    color: #0c5460;
+    border-color: rgba(12, 84, 96, 0.3);
+}
+
+.status-banner.success {
+    background: rgba(212, 237, 218, 0.9);
+    color: #155724;
+    border-color: rgba(21, 87, 36, 0.3);
+}
+
+.status-banner.error {
+    background: rgba(248, 215, 218, 0.9);
+    color: #721c24;
+    border-color: rgba(114, 28, 36, 0.3);
+}
+
+.ar-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.camera-panel,
+.preview-panel {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 22px;
+    padding: 24px;
+    border: 1.5px solid rgba(255, 23, 68, 0.15);
+    box-shadow:
+        0 12px 32px rgba(0, 0, 0, 0.12),
+        0 20px 60px rgba(255, 23, 68, 0.12);
+}
+
+.video-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 2px solid rgba(255, 23, 68, 0.2);
+    background: #121212;
+    min-height: 260px;
+}
+
+.video-container.mirror video,
+.video-container.mirror #landmarkCanvas,
+.video-container.mirror #arOverlay {
+    transform: scaleX(-1);
+}
+
+#video {
+    width: 100%;
+    display: block;
+    border-radius: 18px;
+}
+
+#landmarkCanvas,
+#arOverlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+#arOverlay {
+    z-index: 2;
+}
+
+#landmarkCanvas {
+    z-index: 3;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.control-btn {
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 2px solid rgba(255, 23, 68, 0.2);
+    background: rgba(255, 255, 255, 0.95);
+    color: #b0132b;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+    box-shadow: 0 6px 18px rgba(255, 23, 68, 0.15);
+}
+
+.control-btn.primary {
+    background: linear-gradient(135deg, #ff1744 0%, #ff4d6d 100%);
+    color: #ffffff;
+    border-color: transparent;
+}
+
+.control-btn.danger {
+    background: rgba(255, 255, 255, 0.95);
+    color: #6d0d1d;
+    border-color: rgba(255, 23, 68, 0.5);
+}
+
+.control-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    box-shadow: none;
+}
+
+.control-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(255, 23, 68, 0.25);
+}
+
+.ar-info {
+    margin-top: 24px;
+    display: grid;
+    gap: 12px;
+}
+
+.info-card {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255, 248, 252, 0.9);
+    border: 1px solid rgba(255, 23, 68, 0.12);
+    color: #5a202a;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.info-card h3 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+}
+
+.info-card p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.info-icon {
+    font-size: 12px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ff1744, #ff4d6d);
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 8px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.preview-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.preview-header {
+    font-weight: 700;
+    color: #b0132b;
+    font-size: 18px;
+}
+
+.ar-source-preview {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 23, 68, 0.2);
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.ar-source-preview img {
+    width: 100%;
+    display: block;
+    border-radius: 16px;
+}
+
+.preview-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.preview-placeholder {
+    border-radius: 16px;
+    border: 1px dashed rgba(255, 23, 68, 0.25);
+    padding: 24px;
+    text-align: center;
+    color: #8a6b72;
+}
+
+.preview-item img {
+    width: 100%;
+    border-radius: 16px;
+    border: 2px solid rgba(255, 23, 68, 0.2);
+}
+
+.preview-caption {
+    font-size: 13px;
+    color: #6f4d55;
+}
+
+@media (max-width: 960px) {
+    .ar-layout {
+        grid-template-columns: 1fr;
+    }
+}

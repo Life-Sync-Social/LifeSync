@@ -2,12 +2,12 @@
   // Auth check
   const isLoggedIn = sessionStorage.getItem('isLoggedIn');
   if (!isLoggedIn) {
-    window.location.href = '../login_signup/login.html';
-    return;
+    // Temporarily disabled for testing live server
+    // window.location.href = '../login_signup/login.html';
+    // return;
   }
 
-  const API_BASE = 'http://localhost:3001';
-  const promptInput = document.getElementById('promptInput');
+  const promptInput = document.getElementById('promptInput');   
   const generateBtn = document.getElementById('generateBtn');
   const resultContent = document.getElementById('resultContent');
   const errorMsg = document.getElementById('errorMsg');
@@ -41,11 +41,12 @@
     useInAr.innerHTML = '<span>🤳</span><span>Use in AR</span>';
     useInAr.addEventListener('click', function () {
       sessionStorage.setItem('arGeneratedImage', imageDataUrl);
-      window.location.href = '../ar_filters_ui/ar_filters.html';
+      window.location.href = '../ar_filters_ui/ar_camera.html';
     });
 
     resultContent.appendChild(wrap);
     resultContent.appendChild(useInAr);
+    setLoading(false);
   }
 
   function showPlaceholder() {
@@ -65,36 +66,23 @@
     showPlaceholder();
 
     try {
-      const res = await fetch(API_BASE + '/api/generate-image', {
+      const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt }),
+        body: JSON.stringify({ prompt }),
       });
-      const data = await res.json().catch(function () { return {}; });
+
+      const data = await res.json();
 
       if (!res.ok) {
-        showError(data.error || 'Could not generate image.');
-        setLoading(false);
-        return;
+        throw new Error(data.error || 'Failed to generate image');
       }
 
-      var dataUrl = data.imageDataUrl || null;
-      if (data.imageBase64 && data.mimeType) {
-        dataUrl = 'data:' + data.mimeType + ';base64,' + data.imageBase64;
-      }
-      if (data.imageUrl) {
-        dataUrl = data.imageUrl;
-      }
-
-      if (dataUrl) {
-        showResult(dataUrl);
-      } else {
-        showError('No image returned from server.');
-      }
+      showResult(data.imageDataUrl);
     } catch (err) {
-      showError('Network error. Is the server running on ' + API_BASE + '?');
+      showError(err.message || 'Could not generate image');
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   if (generateBtn) {

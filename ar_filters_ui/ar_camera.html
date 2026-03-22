@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeSync - AR Camera</title>
+    <link rel="stylesheet" href="../base.css">
+    <link rel="stylesheet" href="ar_filters.css">
+    <link rel="stylesheet" href="ar_camera.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <button onclick="window.location.href='ar_filters.html'" class="back-btn" title="Back to AR Filters">
+                <span class="back-icon">&larr;</span>
+            </button>
+            <h1>AR Camera</h1>
+        </header>
+
+        <div class="main-content">
+            <div class="content-header">
+                <h2>Live AR Preview</h2>
+                <p class="content-subtitle">Your generated image is mapped onto your face with real-time landmark tracking.</p>
+            </div>
+
+            <div id="status" class="status-banner info" role="status">
+                Initializing AR engine...
+            </div>
+
+            <div class="ar-layout">
+                <section class="camera-panel">
+                    <div class="video-container">
+                        <video id="video" autoplay playsinline muted></video>
+                        <canvas id="landmarkCanvas"></canvas>
+                        <canvas id="arOverlay"></canvas>
+                    </div>
+
+                    <div class="controls">
+                        <button id="startBtn" class="control-btn primary">Start Camera</button>
+                        <button id="captureBtn" class="control-btn" disabled>Take Photo</button>
+                        <button id="switchBtn" class="control-btn" disabled>Switch Camera</button>
+                        <button id="toggleLandmarksBtn" class="control-btn" disabled>Hide Landmarks</button>
+                        <button id="stopBtn" class="control-btn danger" disabled>Stop</button>
+                    </div>
+
+                    <div class="ar-info">
+                        <div class="info-card">
+                            <span class="info-icon">FACE</span>
+                            <div>
+                                <h3>478 Landmarks</h3>
+                                <p>MediaPipe FaceLandmarker maps your full facial geometry in real time.</p>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-icon">AR</span>
+                            <div>
+                                <h3>Curvature Mapping</h3>
+                                <p>Generated images warp to follow the 3D contours of your face.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="preview-panel">
+                    <div class="preview-header">AR Filter Source</div>
+                    <div id="arSourcePreview" class="ar-source-preview">
+                        <div class="preview-placeholder">No AR image loaded.</div>
+                    </div>
+                    <div class="preview-header" style="margin-top: 16px;">Captures</div>
+                    <div id="capturePreview" class="preview-body">
+                        <div class="preview-placeholder">No captures yet.</div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="offscreenCanvas" style="display:none;"></canvas>
+    <script src="ar_camera.js" type="module"></script>
+</body>
+</html>

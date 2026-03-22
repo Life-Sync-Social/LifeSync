@@ -2,22 +2,42 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
-const HF_TOKEN = process.env.HF_TOKEN;
-const HF_MODEL = process.env.HF_CHAT_MODEL || 'HuggingFaceTB/SmolLM3-3B:hf-inference';
-// Optional: set HF_IMAGE_MODEL in .env for image generation (e.g. stabilityai/stable-diffusion-xl-base-1.0). If unset, placeholder is returned.
-const HF_IMAGE_MODEL = process.env.HF_IMAGE_MODEL || '';
-const PORT = process.env.PORT || 5500;
+// Load config.json if it exists, then fall back to .env
+let config = {};
+const configPath = path.join(__dirname, 'config.json');
+try {
+  if (fs.existsSync(configPath)) {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    console.log('[config] Loaded settings from config.json');
+  }
+} catch (e) {
+  console.warn('[config] Could not parse config.json:', e.message);
+}
 
-if (!HF_TOKEN || HF_TOKEN === 'your_hugging_face_token_here') {
-  console.error('Missing or invalid HF_TOKEN. Set it in server/.env');
+const PLACEHOLDER_TOKENS = ['YOUR_HUGGINGFACE_API_KEY_HERE', 'your_hugging_face_token_here'];
+const configToken = (config.HF_TOKEN && !PLACEHOLDER_TOKENS.includes(config.HF_TOKEN)) ? config.HF_TOKEN : null;
+const HF_TOKEN = configToken || process.env.HF_TOKEN;
+const HF_MODEL = config.HF_CHAT_MODEL || process.env.HF_CHAT_MODEL || 'HuggingFaceTB/SmolLM3-3B:hf-inference';
+const HF_IMAGE_MODEL = config.HF_IMAGE_MODEL || process.env.HF_IMAGE_MODEL || 'black-forest-labs/FLUX.1-schnell';
+const PORT = config.PORT || process.env.PORT || 5500;
+
+if (!HF_TOKEN || HF_TOKEN === 'YOUR_HUGGINGFACE_API_KEY_HERE' || HF_TOKEN === 'your_hugging_face_token_here') {
+  console.error('Missing or invalid HF_TOKEN. Set your API key in picture_gen/config.json or picture_gen/.env');
   process.exit(1);
 }
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..'), { index: 'index.html' }));
+app.use(express.static(__dirname, { index: 'index.html' }));
+// Serve the parent Master directory so relative paths to ar_filters_ui/ work
+app.use(express.static(path.join(__dirname, '..'), { index: false }));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 const MAX_PRIOR_TURNS = 5;
 
@@ -113,7 +133,6 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Placeholder 1x1 PNG (transparent) as data URL for when image model is not configured
 const PLACEHOLDER_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
 async function callHuggingFaceImage(prompt, retries = 2) {
@@ -187,5 +206,6 @@ app.post('/api/generate-image', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`LifeSync chat API listening on http://localhost:${PORT}`);
+  console.log(`Picture Generator listening on http://localhost:${PORT}`);
+  console.log(`Open http://localhost:${PORT}/index.html to use the app`);
 });
