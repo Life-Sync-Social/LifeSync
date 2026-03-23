@@ -223,119 +223,43 @@ function drawLandmarkDots(landmarks, displayW, displayH) {
     }
 }
 
-// ── AR overlay: landmark-anchored mesh with expression reactivity ────────
-// Uses a dense grid of face landmarks that respond to expressions
-// (mouth open, smile, eye blink, eyebrow raise). UV coordinates are
-// fixed (canonical) so the mask stays stable during head rotation.
-// Temporal smoothing (EMA) prevents jitter.
+// ── AR overlay: landmark-anchored grid with expanded coverage ────────────
+// Uses a grid of real face landmarks with outer points pushed outward
+// from the face center to ensure full face coverage. Each vertex's UV
+// is computed from position within an expanded bounding box.
 
-// 11 columns x 15 rows grid of landmark indices
-// Symmetric: right-side face → center → left-side face
-// Includes expression-reactive landmarks (eyes, mouth, eyebrows)
+// 9 columns x 11 rows grid of landmark indices
+// Outer ring uses face silhouette landmarks pushed further out
 const FACE_GRID = [
-    // row 0: above forehead (outer boundary)
-    [251, 298, 332, 297,  10,  67, 103,  54,  21],
-    // row 1: forehead hairline
-    [301, 283, 282, 295,  10, 65,  52,  53, 71],
-    // row 2: upper forehead
-    [389, 368, 336,   9, 151, 107, 139, 127, 162],
-    // row 3: mid forehead
-    [356, 264, 334, 333, 168, 104, 105,  34, 127],
-    // row 4: brow line (expression-reactive: eyebrow raise)
-    [454, 353, 276, 283, 168,  53,  46, 124, 234],
-    // row 5: upper eyes (expression-reactive: blink/squint)
-    [447, 380, 386, 259,   6,  29, 159, 153, 227],
-    // row 6: lower eyes / upper cheek
-    [366, 382, 362, 370,   4, 141, 133, 155, 137],
-    // row 7: mid cheek / nose
-    [361, 352, 282, 275,   4,  45,  52, 123, 132],
-    // row 8: lower cheek / nostrils
-    [435, 416, 326, 327,   2,  98,  97, 192, 215],
-    // row 9: upper lip (expression-reactive: smile/mouth)
-    [288, 411, 310, 312,  13,  82,  80, 187,  58],
-    // row 10: mouth opening (expression-reactive: open/close)
-    [375, 321, 405, 314,  17,  84, 181,  91, 146],
-    // row 11: lower lip (expression-reactive)
-    [291, 377, 403, 318,   0,  88, 179, 148,  61],
-    // row 12: chin upper
-    [397, 425, 307, 375, 152, 146, 78, 205, 172],
-    // row 13: chin
-    [365, 378, 400, 369, 152, 140, 176, 149, 136],
-    // row 14: below chin (outer boundary)
-    [435, 401, 396, 369, 152, 140, 172, 177, 215],
+    // row 0: above forehead (expanded)
+    [251, 332, 297,  10,  67, 103,  21, 103,  21],
+    // row 1: forehead top
+    [251, 332, 297,  10,  67, 103,  21, 103,  21],
+    // row 2: forehead
+    [389, 284, 338, 151, 109,  54, 162,  54, 162],
+    // row 3: upper forehead
+    [356, 368, 336,   9, 107, 139, 127, 139, 127],
+    // row 4: brow line
+    [454, 353, 276, 168,  46, 124, 234, 124, 234],
+    // row 5: eyes / nose
+    [323, 346, 280,   6,  50, 117,  93, 117,  93],
+    // row 6: cheeks / nose
+    [361, 352, 359,   4, 130, 123, 132, 123, 132],
+    // row 7: mouth
+    [288, 411, 287,   1,  57, 187,  58, 187,  58],
+    // row 8: lower mouth
+    [397, 425, 307,   0,  78, 205, 172, 205, 172],
+    // row 9: chin
+    [365, 378, 400, 152, 176, 149, 136, 149, 136],
+    // row 10: below chin (expanded)
+    [365, 378, 400, 152, 176, 149, 136, 149, 136],
 ];
 
 const G_ROWS = FACE_GRID.length;
 const G_COLS = FACE_GRID[0].length;
 
-// ── Canonical UV grid ───────────────────────────────────────────────────
-// Fixed texture coordinates for each grid vertex.
-// These never change regardless of head pose, so the mask texture
-// stays stable when the face turns, tilts, or changes expression.
-// UV range: [0,1] mapped to [0, imgW] and [0, imgH] at draw time.
-const CANONICAL_UV = (function () {
-    const uvs = [];
-    for (let r = 0; r < G_ROWS; r++) {
-        uvs[r] = [];
-        const v = r / (G_ROWS - 1);
-        for (let c = 0; c < G_COLS; c++) {
-            // Slightly curved horizontal distribution to match face oval
-            const t = c / (G_COLS - 1);  // 0 → 1 across columns
-            // Apply subtle oval warp: center columns are wider, edges compress
-            const centerDist = Math.abs(t - 0.5) * 2;  // 0 at center, 1 at edge
-            const ovalFactor = 1 - 0.12 * (1 - centerDist * centerDist);
-            const u = 0.5 + (t - 0.5) * ovalFactor / 0.5 * 0.5;
-            uvs[r][c] = { u: Math.max(0, Math.min(1, u)), v };
-        }
-    }
-    return uvs;
-})();
-
-// ── Edge expansion per row ──────────────────────────────────────────────
-// Instead of uniform expansion, we expand more at forehead/chin (taller)
-// and less at cheeks (face is narrower there).
-const ROW_EXPAND = [
-    0.30, // row 0:  above forehead – push up/out
-    0.22, // row 1:  hairline
-    0.15, // row 2:  upper forehead
-    0.10, // row 3:  mid forehead
-    0.08, // row 4:  brow line
-    0.05, // row 5:  eyes
-    0.05, // row 6:  lower eyes
-    0.06, // row 7:  mid cheek
-    0.08, // row 8:  lower cheek
-    0.06, // row 9:  upper lip
-    0.04, // row 10: mouth
-    0.06, // row 11: lower lip
-    0.10, // row 12: chin upper
-    0.18, // row 13: chin
-    0.28, // row 14: below chin – push down/out
-];
-
-// ── Temporal smoothing (EMA) ────────────────────────────────────────────
-const SMOOTH_ALPHA = 0.45;  // lower = smoother but more lag (0.3–0.6 is good)
-let prevSmoothedPts = null;
-
-function smoothPoints(pts) {
-    if (!prevSmoothedPts || prevSmoothedPts.length !== pts.length ||
-        prevSmoothedPts[0].length !== pts[0].length) {
-        // First frame or grid size changed – no smoothing
-        prevSmoothedPts = pts.map(row => row.map(p => ({ x: p.x, y: p.y })));
-        return prevSmoothedPts;
-    }
-    const out = [];
-    for (let r = 0; r < pts.length; r++) {
-        out[r] = [];
-        for (let c = 0; c < pts[r].length; c++) {
-            out[r][c] = {
-                x: prevSmoothedPts[r][c].x + SMOOTH_ALPHA * (pts[r][c].x - prevSmoothedPts[r][c].x),
-                y: prevSmoothedPts[r][c].y + SMOOTH_ALPHA * (pts[r][c].y - prevSmoothedPts[r][c].y),
-            };
-        }
-    }
-    prevSmoothedPts = out;
-    return out;
-}
+// How much to expand the outer boundary beyond the landmark positions
+const EXPAND = 0.25;  // 25% expansion
 
 function drawArOverlay(landmarks, displayW, displayH) {
     arCtx.clearRect(0, 0, displayW, displayH);
@@ -356,10 +280,13 @@ function drawArOverlay(landmarks, displayW, displayH) {
     const imgW = arImage.naturalWidth || arImage.width;
     const imgH = arImage.naturalHeight || arImage.height;
 
-    // Build raw screen positions from landmarks
-    const rawPts = [];
+    // Convert grid landmarks to RAW (non-mirrored) coords for UV computation
+    // and DISPLAY (mirrored) coords for destination positions
+    const rawPts = [];   // non-mirrored, for UV
+    const dstPts = [];   // mirrored, for drawing position
     for (let r = 0; r < G_ROWS; r++) {
         rawPts[r] = [];
+        dstPts[r] = [];
         for (let c = 0; c < G_COLS; c++) {
             const lm = face[FACE_GRID[r][c]];
             let x, y;
@@ -369,64 +296,67 @@ function drawArOverlay(landmarks, displayW, displayH) {
                 x = lm.x * rw + ox;
                 y = lm.y * rh + oy;
             }
-            // Apply mirror for selfie camera
-            rawPts[r][c] = { x: isMirror ? displayW - x : x, y };
+            rawPts[r][c] = { x, y };
+            dstPts[r][c] = { x: isMirror ? displayW - x : x, y };
         }
     }
 
-    // Compute face centroid for contour-aware expansion
+    // Compute face center and bbox from RAW points (for UV)
     let sumX = 0, sumY = 0, cnt = 0;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (let r = 0; r < G_ROWS; r++) {
-        for (let c = 0; c < G_COLS; c++) {
-            sumX += rawPts[r][c].x;
-            sumY += rawPts[r][c].y;
-            cnt++;
-        }
-    }
-    const cx = sumX / cnt;
-    const cy = sumY / cnt;
-
-    // Contour-aware expansion: each row gets its own expansion factor,
-    // and edge columns expand more than center columns
-    const expandedPts = [];
-    for (let r = 0; r < G_ROWS; r++) {
-        expandedPts[r] = [];
-        const rowExp = ROW_EXPAND[r] || 0.10;
         for (let c = 0; c < G_COLS; c++) {
             const p = rawPts[r][c];
-            // Edge columns get full expansion; center columns get minimal
-            const colNorm = c / (G_COLS - 1);        // 0 → 1
-            const edgeness = 1 - 2 * Math.abs(colNorm - 0.5);  // 0 at edges, 1 at center
-            const colScale = 1 - edgeness * 0.6;     // edges=1.0, center=0.4
-            const exp = rowExp * colScale;
-            expandedPts[r][c] = {
-                x: cx + (p.x - cx) * (1 + exp),
-                y: cy + (p.y - cy) * (1 + exp),
+            sumX += p.x; sumY += p.y; cnt++;
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+        }
+    }
+    const bw = maxX - minX || 1;
+    const bh = maxY - minY || 1;
+
+    // Expand destination points outward from their center
+    let dSumX = 0, dSumY = 0;
+    for (let r = 0; r < G_ROWS; r++) {
+        for (let c = 0; c < G_COLS; c++) {
+            dSumX += dstPts[r][c].x;
+            dSumY += dstPts[r][c].y;
+        }
+    }
+    const dcx = dSumX / cnt;
+    const dcy = dSumY / cnt;
+
+    const expandedDst = [];
+    for (let r = 0; r < G_ROWS; r++) {
+        expandedDst[r] = [];
+        for (let c = 0; c < G_COLS; c++) {
+            const p = dstPts[r][c];
+            expandedDst[r][c] = {
+                x: dcx + (p.x - dcx) * (1 + EXPAND),
+                y: dcy + (p.y - dcy) * (1 + EXPAND),
             };
         }
     }
 
-    // Apply temporal smoothing to reduce jitter
-    const smoothed = smoothPoints(expandedPts);
-
-    // Compute UV from canonical (fixed) coordinates
+    // UV from raw (non-mirrored) positions normalised to face bbox
     const uvs = [];
     for (let r = 0; r < G_ROWS; r++) {
         uvs[r] = [];
         for (let c = 0; c < G_COLS; c++) {
-            uvs[r][c] = {
-                u: CANONICAL_UV[r][c].u * imgW,
-                v: CANONICAL_UV[r][c].v * imgH,
-            };
+            const u = (rawPts[r][c].x - minX) / bw;
+            const v = (rawPts[r][c].y - minY) / bh;
+            uvs[r][c] = { u: u * imgW, v: v * imgH };
         }
     }
 
-    arCtx.globalAlpha = 0.88;
+    arCtx.globalAlpha = 0.85;
 
     for (let r = 0; r < G_ROWS - 1; r++) {
         for (let c = 0; c < G_COLS - 1; c++) {
-            const d00 = smoothed[r][c],     d10 = smoothed[r][c+1];
-            const d01 = smoothed[r+1][c],   d11 = smoothed[r+1][c+1];
+            const d00 = expandedDst[r][c],     d10 = expandedDst[r][c+1];
+            const d01 = expandedDst[r+1][c],   d11 = expandedDst[r+1][c+1];
             const s00 = uvs[r][c],     s10 = uvs[r][c+1];
             const s01 = uvs[r+1][c],   s11 = uvs[r+1][c+1];
 
@@ -477,7 +407,6 @@ function drawTri(ctx, img,
 function stopLoop() {
     if (animFrameId !== null) { cancelAnimationFrame(animFrameId); animFrameId = null; }
     lastVideoTime = -1;
-    prevSmoothedPts = null;   // reset temporal smoothing on stop
     landmarkCtx.clearRect(0, 0, landmarkCanvas.width, landmarkCanvas.height);
     arCtx.clearRect(0, 0, arOverlay.width, arOverlay.height);
 }
@@ -506,7 +435,6 @@ function startLoop() {
                 if (faces.length > 0) {
                     setStatus('Tracking face | AR overlay active', 'success');
                 } else {
-                    prevSmoothedPts = null;   // reset smoothing when face lost
                     setStatus('No face detected. Look at the camera.', 'info');
                 }
             } catch (err) {

@@ -11,10 +11,8 @@
   const HF_IMAGE_MODEL = 'black-forest-labs/FLUX.1-schnell';
   const HF_API_URL = 'https://router.huggingface.co/hf-inference/models/' + HF_IMAGE_MODEL;
 
-  // Prompt: generate a mask or object overlay that covers the face area.
-  // NOT a human face – a shaped mask, creature, object, or design that
-  // will be warped onto the user's face as an AR overlay.
-  const AR_PROMPT_PREFIX = 'Front-facing mask design, flat front view filling the entire square frame edge to edge from forehead to chin, no neck no shoulders no body visible, symmetrical, detailed texture, solid opaque design on a plain single-color background, designed as a wearable face mask or face-shaped overlay. Can be any theme: animal, creature, robot, object, artistic pattern, or fantasy. This is a MASK not a human face. The design should be: ';
+  // Prompt: generate close-up face paint, face only, no neck
+  const AR_PROMPT_PREFIX = 'Extreme close-up of face paint design covering only the face from forehead to chin, no neck no shoulders no body, just the face filling the entire square frame edge to edge, front view, symmetrical, detailed ';
 
   // ── API key (obfuscated) ──────────────────────────────────────────
   function _k() {
