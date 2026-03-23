@@ -16,7 +16,7 @@
 
   // ── API key (obfuscated) ──────────────────────────────────────────
   function _k() {
-    var e = 'eGNEa0NmTlVkbEpFWE5TQ2tUS0ljWGJXdm9GVkh0ckRTcl9maA==';
+    var e = 'eWdBZEFVU2RQTlhlT1B1YW90QVZDZnZGV1Z3dFFxVUJKSF9maA==';
     return atob(e).split('').reverse().join('');
   }
 
