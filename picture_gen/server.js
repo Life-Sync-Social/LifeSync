@@ -171,8 +171,8 @@ async function callHuggingFaceImage(prompt, retries = 2) {
   return { imageBase64: buf.toString('base64'), mimeType: 'image/png' };
 }
 
-// AR prompt prefix: instructs the model to generate face-filter/overlay images
-const AR_PROMPT_PREFIX = 'Extreme close-up of face paint design covering only the face from forehead to chin, no neck no shoulders no body, just the face filling the entire square frame edge to edge, front view, symmetrical, detailed ';
+// AR prompt prefix: instructs the model to generate mask/object overlays for face AR
+const AR_PROMPT_PREFIX = 'Front-facing mask design, flat front view filling the entire square frame edge to edge from forehead to chin, no neck no shoulders no body visible, symmetrical, detailed texture, solid opaque design on a plain single-color background, designed as a wearable face mask or face-shaped overlay. Can be any theme: animal, creature, robot, object, artistic pattern, or fantasy. This is a MASK not a human face. The design should be: ';
 
 app.post('/api/generate-image', async (req, res) => {
   try {
